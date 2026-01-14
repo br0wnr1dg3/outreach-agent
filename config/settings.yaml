@@ -1,0 +1,14 @@
+# Sequence timing
+sequence:
+  email_2_delay_days: 3
+  email_3_delay_days: 4    # Days after email 2 (7 total from email 1)
+
+# Rate limiting
+sending:
+  daily_limit: 50          # Max emails per day
+  min_delay_seconds: 20    # Min gap between sends
+  max_delay_seconds: 60    # Max gap between sends
+
+# Gmail account
+gmail:
+  from_name: "Chris"
