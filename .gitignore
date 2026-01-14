@@ -2,13 +2,26 @@
 .env
 .venv/
 __pycache__/
+*.pyc
 
 # Data
 data/outreach.db
+data/*.xlsx
+!data/leads_example.xlsx
 
 # IDE
 .idea/
 .vscode/
+*.swp
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
