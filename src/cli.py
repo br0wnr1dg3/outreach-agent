@@ -1,6 +1,8 @@
 """Command-line interface for outreach boilerplate."""
 
 import asyncio
+import shutil
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -22,29 +24,62 @@ structlog.configure(
 
 log = structlog.get_logger()
 
-
-@click.group()
-def cli():
-    """Outreach Boilerplate - Humor-first cold email CLI."""
-    pass
+LEADS_FOLDER = Path("leads")
+PROCESSED_FOLDER = LEADS_FOLDER / "processed"
 
 
-@cli.command(name="import")
-@click.argument("excel_path", type=click.Path(exists=True))
-@click.option("--db", "db_path", type=click.Path(), default=str(DEFAULT_DB_PATH),
-              help="Database path")
-def import_cmd(excel_path: str, db_path: str):
-    """Import leads from an Excel file."""
-    db = Path(db_path)
-    init_db(db)
+def import_from_leads_folder(db_path: Path) -> dict:
+    """Import all Excel files from /leads folder and move to /processed."""
+    LEADS_FOLDER.mkdir(exist_ok=True)
+    PROCESSED_FOLDER.mkdir(exist_ok=True)
 
-    click.echo(f"Importing leads from {excel_path}...")
+    total_imported = 0
+    total_skipped = 0
+    files_processed = []
 
-    result = import_leads(Path(excel_path), db)
+    # Find all Excel files
+    excel_files = list(LEADS_FOLDER.glob("*.xlsx")) + list(LEADS_FOLDER.glob("*.xls"))
 
-    click.echo(f"\nImported {result['imported']} new leads")
-    if result['skipped'] > 0:
-        click.echo(f"Skipped {result['skipped']} duplicates")
+    for excel_path in excel_files:
+        if excel_path.parent == PROCESSED_FOLDER:
+            continue  # Skip files already in processed folder
+
+        click.echo(f"Importing {excel_path.name}...")
+
+        try:
+            result = import_leads(excel_path, db_path)
+            total_imported += result["imported"]
+            total_skipped += result["skipped"]
+
+            # Move to processed folder with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            new_name = f"{excel_path.stem}_{timestamp}{excel_path.suffix}"
+            dest = PROCESSED_FOLDER / new_name
+            shutil.move(str(excel_path), str(dest))
+
+            files_processed.append(excel_path.name)
+            click.echo(f"  → Imported {result['imported']}, skipped {result['skipped']}")
+
+        except Exception as e:
+            click.echo(f"  ✗ Error: {e}")
+
+    return {
+        "imported": total_imported,
+        "skipped": total_skipped,
+        "files": files_processed,
+    }
+
+
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    """Outreach Boilerplate - Humor-first cold email CLI.
+
+    Just run 'python run.py' to import leads and send emails.
+    """
+    if ctx.invoked_subcommand is None:
+        # Default behavior: run the full cycle
+        ctx.invoke(run)
 
 
 @cli.command()
@@ -52,15 +87,31 @@ def import_cmd(excel_path: str, db_path: str):
               help="Database path")
 @click.option("--config", "config_path", type=click.Path(), default=str(DEFAULT_CONFIG_PATH),
               help="Config directory path")
-def send(db_path: str, config_path: str):
-    """Send emails (process new leads and follow-ups)."""
+def run(db_path: str, config_path: str):
+    """Import new leads from /leads folder and send emails."""
     db = Path(db_path)
     config = Path(config_path)
 
     init_db(db)
     settings = load_settings(config)
 
-    click.echo("Starting send cycle...\n")
+    # Step 1: Import any new leads
+    click.echo("=" * 40)
+    click.echo("STEP 1: Checking for new leads...")
+    click.echo("=" * 40)
+
+    import_result = import_from_leads_folder(db)
+
+    if import_result["files"]:
+        click.echo(f"\nImported {import_result['imported']} leads from {len(import_result['files'])} file(s)")
+        click.echo("Files moved to leads/processed/")
+    else:
+        click.echo("No new files in /leads folder")
+
+    # Step 2: Send emails
+    click.echo("\n" + "=" * 40)
+    click.echo("STEP 2: Sending emails...")
+    click.echo("=" * 40 + "\n")
 
     result = asyncio.run(run_send_cycle(db, config))
 
@@ -72,14 +123,19 @@ def send(db_path: str, config_path: str):
         click.echo()
 
     if result["new_sent"] > 0:
-        click.echo(f"New leads processed: {result['new_sent']}")
+        click.echo(f"New leads emailed: {result['new_sent']}")
 
     if result["followups_sent"] > 0:
         click.echo(f"Follow-ups sent: {result['followups_sent']}")
 
     total_sent = result["new_sent"] + result["followups_sent"]
-    click.echo(f"\nTotal sent: {total_sent}")
-    click.echo(f"Daily sends: {result['sent_today']}/{settings.sending.daily_limit}")
+
+    # Summary
+    click.echo("\n" + "=" * 40)
+    click.echo("SUMMARY")
+    click.echo("=" * 40)
+    click.echo(f"Emails sent this run: {total_sent}")
+    click.echo(f"Daily total: {result['sent_today']}/{settings.sending.daily_limit}")
 
     if result["daily_limit_reached"]:
         click.echo("\n⚠️  Daily limit reached. Run again tomorrow.")

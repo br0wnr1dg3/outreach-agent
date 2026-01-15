@@ -9,6 +9,11 @@ data/outreach.db
 data/*.xlsx
 !data/leads_example.xlsx
 
+# Leads (keep folder structure, ignore actual files)
+leads/*.xlsx
+leads/*.xls
+leads/processed/
+
 # IDE
 .idea/
 .vscode/
