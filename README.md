@@ -11,7 +11,60 @@ Humor-first cold email outreach CLI. Clone, configure, upload leads, hit go.
 5. **Automate follow-ups** via cron (self-aware templated humor)
 6. **Stop sequences** when replies detected
 
-## Setup (5 minutes)
+---
+
+## Running a Campaign
+
+Once setup is complete, here's how to run a campaign:
+
+### Step 1: Prepare Your Lead List
+
+Create an Excel file with these columns:
+
+| email | first_name | last_name | company | title | linkedin_url |
+|-------|------------|-----------|---------|-------|--------------|
+| sarah@brand.com | Sarah | Chen | Brand Co | Marketing Director | https://linkedin.com/in/sarahchen |
+
+Save it anywhere (e.g., `leads.xlsx` in the project folder).
+
+### Step 2: Import Leads
+
+```bash
+python run.py import leads.xlsx
+```
+
+This adds leads to the database and marks them as "new".
+
+### Step 3: Send Emails
+
+```bash
+python run.py send
+```
+
+This will:
+- Scrape each lead's LinkedIn for recent posts
+- Generate a personalized joke opener using Claude
+- Send the email via Gmail
+- Schedule follow-ups automatically
+
+### Step 4: Check Progress
+
+```bash
+python run.py status
+```
+
+Shows how many leads are new, active, replied, or completed.
+
+### Step 5: Run Daily (or set up cron)
+
+Run `python run.py send` daily to:
+- Detect replies and stop those sequences
+- Send scheduled follow-ups
+- Process any new leads you've imported
+
+---
+
+## One-Time Setup
 
 ### 1. Clone and Install
 
@@ -28,30 +81,32 @@ cp .env.example .env
 ```
 
 Edit `.env` with your keys:
-- `ANTHROPIC_API_KEY` - Get from [Anthropic Console](https://console.anthropic.com/)
-- `COMPOSIO_API_KEY` - Get from [Composio](https://composio.dev/)
-- `APIFY_API_KEY` - Get from [Apify](https://apify.com/)
+- `ANTHROPIC_API_KEY` - [Anthropic Console](https://console.anthropic.com/)
+- `COMPOSIO_API_KEY` - [Composio](https://composio.dev/)
+- `APIFY_API_KEY` - [Apify](https://apify.com/)
 
 ### 3. Connect Gmail
 
-```bash
-composio login
-composio add gmail
-```
+1. Go to [composio.dev](https://composio.dev) dashboard
+2. Connect your Gmail account
+3. Copy the connected account ID
+4. Paste it in `config/settings.yaml` under `gmail.connected_account_id`
 
 ### 4. Configure Your Messaging
 
-Edit the files in `config/`:
+Edit files in `config/`:
 
-- `context.md` - Who you are, what you offer, tone guidelines
-- `email_1.md` - Base template for first email (Claude personalizes the opener)
-- `followup_1.md` - Template for email 2 (3 days later)
-- `followup_2.md` - Template for email 3 (7 days later)
-- `settings.yaml` - Timing and rate limits
+| File | Purpose |
+|------|---------|
+| `context.md` | Who you are, what you offer, tone guidelines |
+| `email_1.md` | First email template (Claude fills in the joke) |
+| `followup_1.md` | Second email (sent 3 days later) |
+| `followup_2.md` | Third email (sent 7 days later) |
+| `settings.yaml` | Timing, rate limits, Gmail account |
 
-### 5. Set Up Cron (Optional)
+### 5. Automate with Cron (Optional)
 
-For automated follow-ups:
+To run automatically every hour:
 
 ```bash
 crontab -e
@@ -62,44 +117,11 @@ Add:
 0 * * * * cd /path/to/outreach-boilerplate && uv run python run.py send >> /tmp/outreach.log 2>&1
 ```
 
-## Usage
+---
 
-### Import Leads
+## How the Emails Work
 
-```bash
-python run.py import leads.xlsx
-```
-
-Excel format:
-
-| email | first_name | last_name | company | title | linkedin_url |
-|-------|------------|-----------|---------|-------|--------------|
-| sarah@brand.com | Sarah | Chen | Brand Co | Marketing Director | https://linkedin.com/in/sarahchen |
-
-### Send Emails
-
-```bash
-python run.py send
-```
-
-This will:
-1. Check for replies (stop sequences for those who replied)
-2. Process new leads (enrich → generate → send)
-3. Send follow-ups that are due
-
-### Check Status
-
-```bash
-# Overall pipeline status
-python run.py status
-
-# Specific lead
-python run.py status --lead sarah@brand.com
-```
-
-## How It Works
-
-### Email 1: Personalized Joke
+### Email 1: Personalized Joke Opener
 
 Claude reads their LinkedIn and generates a genuinely funny opener:
 
@@ -125,7 +147,7 @@ subject: re: your linkedin is suspiciously clean
 
 Hey Sarah,
 
-Following up on my own cold email. The audacity continues.
+Following up on my own cold email. The audacity.
 
 Genuinely curious if creator/affiliate stuff is on your radar
 or if I should take the hint.
@@ -133,7 +155,9 @@ or if I should take the hint.
 Chris
 ```
 
-## Configuration
+---
+
+## Configuration Reference
 
 ### settings.yaml
 
@@ -149,7 +173,10 @@ sending:
 
 gmail:
   from_name: "Chris"
+  connected_account_id: "ca_xxx"  # From Composio dashboard
 ```
+
+---
 
 ## Requirements
 
