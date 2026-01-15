@@ -12,7 +12,7 @@ from src.db import DEFAULT_DB_PATH, get_lead_by_id, update_lead_enrichment
 log = structlog.get_logger()
 
 APIFY_API_KEY = os.getenv("APIFY_API_KEY", "")
-APIFY_ACTOR_ID = "curious_coder/linkedin-profile-scraper"
+APIFY_ACTOR_ID = "bebity/linkedin-profile-scraper"
 APIFY_BASE_URL = "https://api.apify.com/v2"
 
 

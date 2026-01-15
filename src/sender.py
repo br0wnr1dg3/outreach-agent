@@ -20,7 +20,7 @@ async def send_new_email(
 
     Returns dict with thread_id and message_id.
     """
-    log.info("sending_new_email", to=to, subject=subject)
+    log.info("sending_new_email", to=to, subject=subject, connected_account_id=connected_account_id)
 
     toolset = ComposioToolSet()
 
@@ -28,10 +28,9 @@ async def send_new_email(
     execute_kwargs = {
         "action": Action.GMAIL_SEND_EMAIL,
         "params": {
-            "to": to,
+            "recipient_email": to,
             "subject": subject,
             "body": body,
-            "from_name": from_name,
         }
     }
     if connected_account_id:

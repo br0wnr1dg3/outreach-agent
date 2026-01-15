@@ -12,7 +12,7 @@ from src.config import DEFAULT_CONFIG_PATH, load_template, render_template
 
 log = structlog.get_logger()
 
-MODEL = "claude-opus-4-5-20250514"
+MODEL = "claude-opus-4-5-20251101"
 
 
 def build_system_prompt(context: str) -> str:
