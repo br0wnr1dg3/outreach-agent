@@ -26,7 +26,10 @@ from src.sender import send_new_email, send_reply_email, check_for_reply
 log = structlog.get_logger()
 
 
-async def check_replies(db_path: Path = DEFAULT_DB_PATH) -> list[str]:
+async def check_replies(
+    db_path: Path = DEFAULT_DB_PATH,
+    connected_account_id: Optional[str] = None
+) -> list[str]:
     """Check all active leads for replies.
 
     Returns list of emails that replied.
@@ -39,7 +42,11 @@ async def check_replies(db_path: Path = DEFAULT_DB_PATH) -> list[str]:
             continue
 
         try:
-            has_reply = await check_for_reply(lead["thread_id"], lead["current_step"])
+            has_reply = await check_for_reply(
+                lead["thread_id"],
+                lead["current_step"],
+                connected_account_id
+            )
 
             if has_reply:
                 log.info("reply_detected", email=lead["email"])
@@ -105,7 +112,8 @@ async def process_new_lead(
             to=lead["email"],
             subject=subject,
             body=body,
-            from_name=settings.gmail.from_name
+            from_name=settings.gmail.from_name,
+            connected_account_id=settings.gmail.connected_account_id or None
         )
 
         # Calculate next send time
@@ -183,7 +191,8 @@ async def process_followup(
             body=body,
             thread_id=lead["thread_id"],
             message_id=lead["last_message_id"],
-            from_name=settings.gmail.from_name
+            from_name=settings.gmail.from_name,
+            connected_account_id=settings.gmail.connected_account_id or None
         )
 
         # Calculate next send time (or None if sequence done)
@@ -245,7 +254,10 @@ async def run_send_cycle(
     }
 
     # 1. Check for replies
-    results["replied"] = await check_replies(db_path)
+    results["replied"] = await check_replies(
+        db_path,
+        settings.gmail.connected_account_id or None
+    )
 
     # 2. Process new leads
     new_leads = get_new_leads(db_path)

@@ -1,5 +1,5 @@
 ## Company
-Cheerful - creator affiliate platform
+Cheerful - creator affiliate platform that onboards creators and affiliates and drives content creation for brands on autopilot.
 
 ## Value Prop
 Help brands turn creators into affiliates without the usual chaos.

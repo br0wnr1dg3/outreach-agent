@@ -12,3 +12,4 @@ sending:
 # Gmail account
 gmail:
   from_name: "Chris"
+  connected_account_id: ""  # From Composio dashboard - leave empty to use default

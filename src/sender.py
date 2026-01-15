@@ -13,7 +13,8 @@ async def send_new_email(
     to: str,
     subject: str,
     body: str,
-    from_name: str = "Chris"
+    from_name: str = "Chris",
+    connected_account_id: Optional[str] = None
 ) -> dict:
     """Send a new email (not a reply).
 
@@ -23,19 +24,24 @@ async def send_new_email(
 
     toolset = ComposioToolSet()
 
+    # Build execute_action kwargs
+    execute_kwargs = {
+        "action": Action.GMAIL_SEND_EMAIL,
+        "params": {
+            "to": to,
+            "subject": subject,
+            "body": body,
+            "from_name": from_name,
+        }
+    }
+    if connected_account_id:
+        execute_kwargs["connected_account_id"] = connected_account_id
+
     # Run in executor since Composio is sync
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
-        lambda: toolset.execute_action(
-            action=Action.GMAIL_SEND_EMAIL,
-            params={
-                "to": to,
-                "subject": subject,
-                "body": body,
-                "from_name": from_name,
-            }
-        )
+        lambda: toolset.execute_action(**execute_kwargs)
     )
 
     data = result.get("data", {})
@@ -52,7 +58,8 @@ async def send_reply_email(
     body: str,
     thread_id: str,
     message_id: str,
-    from_name: str = "Chris"
+    from_name: str = "Chris",
+    connected_account_id: Optional[str] = None
 ) -> dict:
     """Send a reply email (in existing thread).
 
@@ -62,20 +69,24 @@ async def send_reply_email(
 
     toolset = ComposioToolSet()
 
+    execute_kwargs = {
+        "action": Action.GMAIL_REPLY_TO_THREAD,
+        "params": {
+            "thread_id": thread_id,
+            "message_id": message_id,
+            "to": to,
+            "subject": subject,
+            "body": body,
+            "from_name": from_name,
+        }
+    }
+    if connected_account_id:
+        execute_kwargs["connected_account_id"] = connected_account_id
+
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
-        lambda: toolset.execute_action(
-            action=Action.GMAIL_REPLY_TO_THREAD,
-            params={
-                "thread_id": thread_id,
-                "message_id": message_id,
-                "to": to,
-                "subject": subject,
-                "body": body,
-                "from_name": from_name,
-            }
-        )
+        lambda: toolset.execute_action(**execute_kwargs)
     )
 
     data = result.get("data", {})
@@ -86,7 +97,10 @@ async def send_reply_email(
     }
 
 
-async def get_thread_messages(thread_id: str) -> list[dict]:
+async def get_thread_messages(
+    thread_id: str,
+    connected_account_id: Optional[str] = None
+) -> list[dict]:
     """Get all messages in a thread.
 
     Returns list of message dicts.
@@ -95,13 +109,17 @@ async def get_thread_messages(thread_id: str) -> list[dict]:
 
     toolset = ComposioToolSet()
 
+    execute_kwargs = {
+        "action": Action.GMAIL_GET_THREAD,
+        "params": {"thread_id": thread_id}
+    }
+    if connected_account_id:
+        execute_kwargs["connected_account_id"] = connected_account_id
+
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
         None,
-        lambda: toolset.execute_action(
-            action=Action.GMAIL_GET_THREAD,
-            params={"thread_id": thread_id}
-        )
+        lambda: toolset.execute_action(**execute_kwargs)
     )
 
     data = result.get("data", {})
@@ -110,12 +128,16 @@ async def get_thread_messages(thread_id: str) -> list[dict]:
     return messages
 
 
-async def check_for_reply(thread_id: str, our_message_count: int) -> bool:
+async def check_for_reply(
+    thread_id: str,
+    our_message_count: int,
+    connected_account_id: Optional[str] = None
+) -> bool:
     """Check if there are more messages in thread than we sent.
 
     Returns True if recipient replied.
     """
-    messages = await get_thread_messages(thread_id)
+    messages = await get_thread_messages(thread_id, connected_account_id)
 
     # If there are more messages than we sent, they replied
     return len(messages) > our_message_count

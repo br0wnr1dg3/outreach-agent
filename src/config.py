@@ -20,6 +20,7 @@ class SendingConfig(BaseModel):
 
 class GmailConfig(BaseModel):
     from_name: str = "Chris"
+    connected_account_id: str = ""  # Composio connected account ID
 
 
 class Settings(BaseModel):
