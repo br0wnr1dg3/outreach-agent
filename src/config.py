@@ -29,6 +29,27 @@ class Settings(BaseModel):
     gmail: GmailConfig = GmailConfig()
 
 
+class LeadGenSearchConfig(BaseModel):
+    keywords: list[str] = ["collagen supplement"]
+    countries: list[str] = ["US"]
+    status: str = "ACTIVE"
+
+
+class LeadGenTargetingConfig(BaseModel):
+    job_titles: list[str] = ["Founder", "CEO", "Head of Marketing", "CMO"]
+
+
+class LeadGenQuotaConfig(BaseModel):
+    leads_per_day: int = 20
+    max_companies_to_check: int = 50
+
+
+class LeadGenConfig(BaseModel):
+    search: LeadGenSearchConfig = LeadGenSearchConfig()
+    targeting: LeadGenTargetingConfig = LeadGenTargetingConfig()
+    quotas: LeadGenQuotaConfig = LeadGenQuotaConfig()
+
+
 DEFAULT_CONFIG_PATH = Path("config")
 
 

@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from src.config import load_settings, load_template, Settings
+from src.config import load_settings, load_template, Settings, LeadGenConfig
 
 
 def test_load_settings():
@@ -38,3 +38,14 @@ def test_load_template():
         content = load_template(config_path, "test_template.md")
 
         assert content == "Hello {{first_name}}!"
+
+
+def test_lead_gen_config_defaults():
+    config = LeadGenConfig()
+
+    assert config.search.keywords == ["collagen supplement"]
+    assert config.search.countries == ["US"]
+    assert config.search.status == "ACTIVE"
+    assert "Founder" in config.targeting.job_titles
+    assert config.quotas.leads_per_day == 20
+    assert config.quotas.max_companies_to_check == 50
