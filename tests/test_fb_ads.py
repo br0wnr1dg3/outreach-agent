@@ -1,6 +1,8 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
-from src.fb_ads import extract_domain
+from src.fb_ads import extract_domain, search_ads
 
 
 def test_extract_domain_simple():
@@ -18,3 +20,43 @@ def test_extract_domain_with_subdomain():
 def test_extract_domain_invalid_url():
     assert extract_domain("not a url") is None
     assert extract_domain("") is None
+
+
+@pytest.mark.asyncio
+async def test_search_ads_returns_results():
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "data": [
+            {
+                "page_id": "123",
+                "page_name": "Glossy Brand",
+                "link_url": "https://glossybrand.com/shop"
+            },
+            {
+                "page_id": "456",
+                "page_name": "Beauty Co",
+                "link_url": "https://beautyco.com/products"
+            }
+        ]
+    }
+    mock_response.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=mock_response)
+
+    with patch("src.fb_ads.SCRAPECREATORS_API_KEY", "test-api-key"):
+        with patch("src.fb_ads.httpx.AsyncClient") as mock_async_client:
+            mock_async_client.return_value.__aenter__.return_value = mock_client
+
+            results = await search_ads("collagen supplement", country="US", limit=10)
+
+            assert len(results) == 2
+            assert results[0]["page_id"] == "123"
+            assert results[0]["link_url"] == "https://glossybrand.com/shop"
+
+
+@pytest.mark.asyncio
+async def test_search_ads_no_api_key_returns_empty():
+    with patch("src.fb_ads.SCRAPECREATORS_API_KEY", ""):
+        results = await search_ads("test keyword")
+        assert results == []

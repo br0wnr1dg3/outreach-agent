@@ -30,3 +30,40 @@ def extract_domain(url: str) -> str | None:
         return domain
     except Exception:
         return None
+
+
+async def search_ads(
+    keyword: str,
+    country: str = "US",
+    status: str = "ACTIVE",
+    limit: int = 50
+) -> list[dict]:
+    """Search FB Ad Library for ads matching keyword.
+
+    Returns list of ad dicts with page_id, page_name, link_url, etc.
+    """
+    if not SCRAPECREATORS_API_KEY:
+        log.warning("scrapecreators_api_key_not_set")
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(
+                BASE_URL,
+                params={
+                    "query": keyword,
+                    "country": country,
+                    "ad_status": status,
+                    "limit": limit,
+                },
+                headers={
+                    "Authorization": f"Bearer {SCRAPECREATORS_API_KEY}",
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data", [])
+
+    except Exception as e:
+        log.error("scrapecreators_search_error", error=str(e), keyword=keyword)
+        return []
