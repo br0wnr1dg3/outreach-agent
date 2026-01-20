@@ -79,3 +79,18 @@ def test_count_sent_today():
 
         count = count_sent_today(db_path)
         assert count == 0
+
+
+def test_init_db_creates_searched_companies_table():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        conn = get_connection(db_path)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='searched_companies'"
+        )
+        tables = cursor.fetchall()
+        conn.close()
+
+        assert len(tables) == 1

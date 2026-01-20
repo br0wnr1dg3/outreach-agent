@@ -66,6 +66,18 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
         CREATE INDEX IF NOT EXISTS idx_leads_next_send ON leads(next_send_at);
+
+        CREATE TABLE IF NOT EXISTS searched_companies (
+            id INTEGER PRIMARY KEY,
+            domain TEXT UNIQUE NOT NULL,
+            company_name TEXT,
+            source_keyword TEXT,
+            fb_page_id TEXT,
+            leads_found INTEGER DEFAULT 0,
+            searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_searched_companies_domain ON searched_companies(domain);
     """)
 
     conn.commit()
