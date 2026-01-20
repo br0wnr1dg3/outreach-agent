@@ -5,7 +5,8 @@ from src.db import (
     init_db, get_connection,
     insert_lead, get_lead_by_email, get_leads_by_status,
     update_lead_status, count_sent_today,
-    insert_searched_company, is_company_searched
+    insert_searched_company, is_company_searched,
+    update_company_leads_found
 )
 
 
@@ -148,3 +149,22 @@ def test_is_company_searched():
 
         assert is_company_searched(db_path, "known.com") is True
         assert is_company_searched(db_path, "unknown.com") is False
+
+
+def test_update_company_leads_found():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        insert_searched_company(db_path, "test.com", "Test", "keyword", "123")
+        update_company_leads_found(db_path, "test.com", 5)
+
+        conn = get_connection(db_path)
+        cursor = conn.execute(
+            "SELECT leads_found FROM searched_companies WHERE domain = ?",
+            ("test.com",)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        assert row["leads_found"] == 5

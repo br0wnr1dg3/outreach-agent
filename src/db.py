@@ -148,6 +148,17 @@ def is_company_searched(db_path: Path, domain: str) -> bool:
     return exists
 
 
+def update_company_leads_found(db_path: Path, domain: str, count: int) -> None:
+    """Update the leads_found count for a searched company."""
+    conn = get_connection(db_path)
+    conn.execute(
+        "UPDATE searched_companies SET leads_found = ? WHERE domain = ?",
+        (count, domain)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_lead_by_email(db_path: Path, email: str) -> Optional[sqlite3.Row]:
     """Get a lead by email."""
     conn = get_connection(db_path)
