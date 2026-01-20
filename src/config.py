@@ -78,3 +78,13 @@ def render_template(template: str, variables: dict) -> str:
     for key, value in variables.items():
         result = result.replace(f"{{{{{key}}}}}", str(value) if value else "")
     return result
+
+
+def load_lead_gen_config(config_path: Path = DEFAULT_CONFIG_PATH) -> LeadGenConfig:
+    """Load lead generation config from YAML file."""
+    config_file = config_path / "lead_gen.yaml"
+    if not config_file.exists():
+        return LeadGenConfig()
+    with open(config_file) as f:
+        data = yaml.safe_load(f) or {}
+    return LeadGenConfig(**data)
