@@ -104,3 +104,48 @@ async def enrich_people(people: list[dict]) -> list[dict]:
     except Exception as e:
         log.error("apollo_enrich_error", error=str(e))
         return []
+
+
+async def find_leads_at_company(
+    domain: str,
+    job_titles: list[str],
+    max_leads: int = 3
+) -> list[dict]:
+    """Find and enrich leads at a company.
+
+    Args:
+        domain: Company domain (e.g., "acme.com")
+        job_titles: List of job titles to search for
+        max_leads: Maximum number of leads to return
+
+    Returns:
+        List of enriched leads ready for DB insert:
+        [{"email": "...", "first_name": "...", "last_name": "...",
+          "company": "...", "title": "...", "linkedin_url": "..."}, ...]
+    """
+    people = await search_people(domain, job_titles, limit=max_leads)
+    if not people:
+        return []
+
+    enriched = await enrich_people(people)
+
+    # Format results and filter out those without email
+    results = []
+    for person in enriched:
+        email = person.get("email")
+        if not email:
+            continue
+
+        org = person.get("organization", {})
+        company_name = org.get("name") if isinstance(org, dict) else None
+
+        results.append({
+            "email": email,
+            "first_name": person.get("first_name"),
+            "last_name": person.get("last_name"),
+            "company": company_name,
+            "title": person.get("title"),
+            "linkedin_url": person.get("linkedin_url"),
+        })
+
+    return results

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
-from src.apollo import search_people, enrich_people
+from src.apollo import search_people, enrich_people, find_leads_at_company
 
 
 @pytest.mark.asyncio
@@ -96,3 +96,40 @@ async def test_enrich_people_empty_list():
     """Test enriching empty list returns empty list."""
     results = await enrich_people([])
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_find_leads_at_company_returns_leads_with_email():
+    """Test finding leads returns enriched leads with emails."""
+    with patch("src.apollo.search_people") as mock_search:
+        with patch("src.apollo.enrich_people") as mock_enrich:
+            mock_search.return_value = [
+                {"id": "1", "first_name": "John", "last_name": "Doe", "title": "CEO",
+                 "organization": {"name": "Acme"}, "linkedin_url": "https://linkedin.com/in/john"}
+            ]
+            mock_enrich.return_value = [
+                {"id": "1", "first_name": "John", "last_name": "Doe", "email": "john@acme.com",
+                 "title": "CEO", "organization": {"name": "Acme"}, "linkedin_url": "https://linkedin.com/in/john"}
+            ]
+
+            results = await find_leads_at_company("acme.com", ["CEO"], max_leads=3)
+
+            assert len(results) == 1
+            assert results[0]["email"] == "john@acme.com"
+            assert results[0]["first_name"] == "John"
+            assert results[0]["company"] == "Acme"
+
+
+@pytest.mark.asyncio
+async def test_find_leads_at_company_filters_no_email():
+    """Test that leads without email are filtered out."""
+    with patch("src.apollo.search_people") as mock_search:
+        with patch("src.apollo.enrich_people") as mock_enrich:
+            mock_search.return_value = [{"id": "1", "first_name": "John"}]
+            mock_enrich.return_value = [
+                {"id": "1", "first_name": "John", "email": None},  # No email
+            ]
+
+            results = await find_leads_at_company("acme.com", ["CEO"])
+
+            assert len(results) == 0
