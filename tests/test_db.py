@@ -6,7 +6,7 @@ from src.db import (
     insert_lead, get_lead_by_email, get_leads_by_status,
     update_lead_status, count_sent_today,
     insert_searched_company, is_company_searched,
-    update_company_leads_found
+    update_company_leads_found, count_leads_generated_today
 )
 
 
@@ -168,3 +168,18 @@ def test_update_company_leads_found():
         conn.close()
 
         assert row["leads_found"] == 5
+
+
+def test_count_leads_generated_today():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        # No leads yet
+        assert count_leads_generated_today(db_path) == 0
+
+        # Add leads today
+        insert_lead(db_path, "lead1@test.com", "One", None, None, None, None)
+        insert_lead(db_path, "lead2@test.com", "Two", None, None, None, None)
+
+        assert count_leads_generated_today(db_path) == 2

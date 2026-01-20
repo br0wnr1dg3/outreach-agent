@@ -304,6 +304,19 @@ def count_sent_today(db_path: Path) -> int:
     return count
 
 
+def count_leads_generated_today(db_path: Path) -> int:
+    """Count leads imported/generated today."""
+    conn = get_connection(db_path)
+    today = datetime.utcnow().date().isoformat()
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM leads WHERE date(imported_at) = ?",
+        (today,)
+    )
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
 def get_pipeline_stats(db_path: Path) -> dict:
     """Get pipeline statistics."""
     conn = get_connection(db_path)
