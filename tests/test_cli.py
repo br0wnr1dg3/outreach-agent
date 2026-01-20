@@ -94,3 +94,42 @@ gmail:
 
         finally:
             os.chdir(old_cwd)
+
+
+def test_generate_command_dry_run(tmp_path, monkeypatch):
+    """Test generate command with --dry-run flag."""
+    db_path = tmp_path / "test.db"
+    config_path = tmp_path
+
+    # Create config
+    (config_path / "lead_gen.yaml").write_text("""
+search:
+  keywords: ["test"]
+targeting:
+  job_titles: ["CEO"]
+quotas:
+  leads_per_day: 5
+  max_companies_to_check: 10
+""")
+
+    with patch("src.cli.generate_leads") as mock_generate:
+        mock_generate.return_value = {
+            "leads_added": 0,
+            "companies_checked": 3,
+            "companies_skipped": 1,
+            "quota_reached": False,
+            "dry_run": True
+        }
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "generate",
+            "--db", str(db_path),
+            "--config", str(config_path),
+            "--dry-run"
+        ])
+
+        assert result.exit_code == 0
+        assert "DRY RUN" in result.output
+        assert "Leads added: 0" in result.output
+        assert "Companies checked: 3" in result.output

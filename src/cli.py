@@ -13,6 +13,7 @@ from src.db import DEFAULT_DB_PATH, init_db, get_pipeline_stats, get_lead_by_ema
 from src.config import DEFAULT_CONFIG_PATH, load_settings
 from src.importer import import_leads
 from src.scheduler import run_send_cycle
+from src.lead_generator import generate_leads
 
 # Configure structlog for CLI output
 structlog.configure(
@@ -187,6 +188,43 @@ def status(db_path: str, lead_email: Optional[str], config_path: str):
     click.echo(f"Completed:             {stats.get('completed', 0)}")
     click.echo("───────────────")
     click.echo(f"Daily sends: {stats.get('sent_today', 0)}/{settings.sending.daily_limit}")
+
+
+@cli.command()
+@click.option("--db", "db_path", type=click.Path(), default=str(DEFAULT_DB_PATH),
+              help="Database path")
+@click.option("--config", "config_path", type=click.Path(), default=str(DEFAULT_CONFIG_PATH),
+              help="Config directory path")
+@click.option("--dry-run", is_flag=True, help="Show what would be generated without making API calls")
+@click.option("--keyword", help="Override search keyword for this run")
+def generate(db_path: str, config_path: str, dry_run: bool, keyword: str):
+    """Generate new leads from FB Ad Library + Apollo."""
+    db = Path(db_path)
+    config = Path(config_path)
+
+    init_db(db)
+
+    if dry_run:
+        click.echo("DRY RUN - No API calls will be made\n")
+
+    click.echo("=" * 40)
+    click.echo("Generating leads...")
+    click.echo("=" * 40 + "\n")
+
+    result = asyncio.run(generate_leads(
+        db_path=db,
+        config_path=config,
+        dry_run=dry_run,
+        keyword_override=keyword
+    ))
+
+    click.echo(f"\nResults:")
+    click.echo(f"  Leads added: {result['leads_added']}")
+    click.echo(f"  Companies checked: {result['companies_checked']}")
+    click.echo(f"  Companies skipped (already searched): {result['companies_skipped']}")
+
+    if result.get("quota_reached"):
+        click.echo(f"\n  Daily quota reached!")
 
 
 def main():
