@@ -67,3 +67,36 @@ async def search_ads(
     except Exception as e:
         log.error("scrapecreators_search_error", error=str(e), keyword=keyword)
         return []
+
+
+async def get_advertiser_domains(
+    keyword: str,
+    country: str = "US",
+    status: str = "ACTIVE",
+    limit: int = 50
+) -> list[dict]:
+    """Search ads and return unique advertiser domains.
+
+    Returns: [{"domain": "glossybrand.com", "page_id": "123", "company_name": "Glossy Brand"}, ...]
+    """
+    ads = await search_ads(keyword, country, status, limit)
+
+    seen_domains: set[str] = set()
+    results: list[dict] = []
+
+    for ad in ads:
+        link_url = ad.get("link_url") or ""
+        domain = extract_domain(link_url)
+
+        if not domain or domain in seen_domains:
+            continue
+
+        seen_domains.add(domain)
+        results.append({
+            "domain": domain,
+            "page_id": ad.get("page_id"),
+            "company_name": ad.get("page_name"),
+        })
+
+    log.info("get_advertiser_domains_complete", keyword=keyword, count=len(results))
+    return results

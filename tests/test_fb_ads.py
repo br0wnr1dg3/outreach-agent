@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.fb_ads import extract_domain, search_ads
+from src.fb_ads import extract_domain, search_ads, get_advertiser_domains
 
 
 def test_extract_domain_simple():
@@ -60,3 +60,35 @@ async def test_search_ads_no_api_key_returns_empty():
     with patch("src.fb_ads.SCRAPECREATORS_API_KEY", ""):
         results = await search_ads("test keyword")
         assert results == []
+
+
+@pytest.mark.asyncio
+async def test_get_advertiser_domains_dedupes_by_domain():
+    with patch("src.fb_ads.search_ads") as mock_search:
+        mock_search.return_value = [
+            {"page_id": "123", "page_name": "Brand A", "link_url": "https://brand-a.com/page1"},
+            {"page_id": "123", "page_name": "Brand A", "link_url": "https://brand-a.com/page2"},
+            {"page_id": "456", "page_name": "Brand B", "link_url": "https://brand-b.com/shop"},
+        ]
+
+        results = await get_advertiser_domains("test", country="US", limit=10)
+
+        assert len(results) == 2
+        domains = [r["domain"] for r in results]
+        assert "brand-a.com" in domains
+        assert "brand-b.com" in domains
+
+
+@pytest.mark.asyncio
+async def test_get_advertiser_domains_skips_invalid_urls():
+    with patch("src.fb_ads.search_ads") as mock_search:
+        mock_search.return_value = [
+            {"page_id": "123", "page_name": "Valid", "link_url": "https://valid.com"},
+            {"page_id": "456", "page_name": "Invalid", "link_url": ""},
+            {"page_id": "789", "page_name": "None", "link_url": None},
+        ]
+
+        results = await get_advertiser_domains("test")
+
+        assert len(results) == 1
+        assert results[0]["domain"] == "valid.com"
