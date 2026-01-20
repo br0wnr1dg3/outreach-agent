@@ -4,7 +4,8 @@ from pathlib import Path
 from src.db import (
     init_db, get_connection,
     insert_lead, get_lead_by_email, get_leads_by_status,
-    update_lead_status, count_sent_today
+    update_lead_status, count_sent_today,
+    insert_searched_company
 )
 
 
@@ -94,3 +95,43 @@ def test_init_db_creates_searched_companies_table():
         conn.close()
 
         assert len(tables) == 1
+
+
+def test_insert_searched_company():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        result = insert_searched_company(
+            db_path=db_path,
+            domain="glossybrand.com",
+            company_name="Glossy Brand",
+            source_keyword="collagen supplement",
+            fb_page_id="123456"
+        )
+
+        assert result is True
+
+        conn = get_connection(db_path)
+        cursor = conn.execute(
+            "SELECT * FROM searched_companies WHERE domain = ?",
+            ("glossybrand.com",)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row["company_name"] == "Glossy Brand"
+        assert row["source_keyword"] == "collagen supplement"
+
+
+def test_insert_searched_company_duplicate_returns_false():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        result1 = insert_searched_company(db_path, "test.com", "Test", "keyword", "123")
+        result2 = insert_searched_company(db_path, "test.com", "Test Again", "other", "456")
+
+        assert result1 is True
+        assert result2 is False

@@ -111,6 +111,31 @@ def insert_lead(
         conn.close()
 
 
+def insert_searched_company(
+    db_path: Path,
+    domain: str,
+    company_name: Optional[str],
+    source_keyword: Optional[str],
+    fb_page_id: Optional[str],
+) -> bool:
+    """Insert a searched company. Returns True if inserted, False if duplicate."""
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO searched_companies (domain, company_name, source_keyword, fb_page_id)
+            VALUES (?, ?, ?, ?)
+            """,
+            (domain, company_name, source_keyword, fb_page_id)
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
 def get_lead_by_email(db_path: Path, email: str) -> Optional[sqlite3.Row]:
     """Get a lead by email."""
     conn = get_connection(db_path)
