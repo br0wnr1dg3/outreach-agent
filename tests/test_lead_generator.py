@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, AsyncMock
 
-from src.db import init_db, is_company_searched, insert_searched_company
+from src.db import init_db, is_company_searched, insert_searched_company, insert_lead
 from src.lead_generator import generate_leads
 
 
@@ -86,3 +86,34 @@ quotas:
                 assert result["companies_skipped"] == 1
                 assert result["companies_checked"] == 1
                 assert result["leads_added"] == 1
+
+
+@pytest.mark.asyncio
+async def test_generate_leads_respects_daily_quota():
+    """Test daily quota enforcement."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        config_path = Path(tmpdir)
+
+        init_db(db_path)
+
+        # Pre-add leads to hit quota
+        insert_lead(db_path, "existing1@test.com", "One", None, None, None, None)
+        insert_lead(db_path, "existing2@test.com", "Two", None, None, None, None)
+
+        # Set quota to 2 (already at quota)
+        (config_path / "lead_gen.yaml").write_text("""
+search:
+  keywords: ["test"]
+targeting:
+  job_titles: ["CEO"]
+quotas:
+  leads_per_day: 2
+  max_companies_to_check: 10
+"""
+        )
+
+        result = await generate_leads(db_path=db_path, config_path=config_path)
+
+        assert result["quota_reached"] is True
+        assert result["leads_added"] == 0
