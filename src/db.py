@@ -136,6 +136,18 @@ def insert_searched_company(
         conn.close()
 
 
+def is_company_searched(db_path: Path, domain: str) -> bool:
+    """Check if a company domain has been searched."""
+    conn = get_connection(db_path)
+    cursor = conn.execute(
+        "SELECT 1 FROM searched_companies WHERE domain = ?",
+        (domain,)
+    )
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists
+
+
 def get_lead_by_email(db_path: Path, email: str) -> Optional[sqlite3.Row]:
     """Get a lead by email."""
     conn = get_connection(db_path)

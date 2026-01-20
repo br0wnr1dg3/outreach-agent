@@ -5,7 +5,7 @@ from src.db import (
     init_db, get_connection,
     insert_lead, get_lead_by_email, get_leads_by_status,
     update_lead_status, count_sent_today,
-    insert_searched_company
+    insert_searched_company, is_company_searched
 )
 
 
@@ -135,3 +135,16 @@ def test_insert_searched_company_duplicate_returns_false():
 
         assert result1 is True
         assert result2 is False
+
+
+def test_is_company_searched():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        assert is_company_searched(db_path, "unknown.com") is False
+
+        insert_searched_company(db_path, "known.com", "Known", "keyword", "123")
+
+        assert is_company_searched(db_path, "known.com") is True
+        assert is_company_searched(db_path, "unknown.com") is False
