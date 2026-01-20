@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
-from src.apollo import search_people
+from src.apollo import search_people, enrich_people
 
 
 @pytest.mark.asyncio
@@ -57,3 +57,42 @@ async def test_search_people_handles_error():
             results = await search_people("acme.com", ["CEO"])
 
             assert results == []
+
+
+@pytest.mark.asyncio
+async def test_enrich_people_returns_emails():
+    """Test bulk enrichment returns people with email addresses."""
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "matches": [
+            {
+                "id": "abc123",
+                "first_name": "John",
+                "last_name": "Doe",
+                "email": "john@acme.com",
+                "title": "CEO",
+                "organization": {"name": "Acme Inc"},
+                "linkedin_url": "https://linkedin.com/in/johndoe"
+            }
+        ]
+    }
+    mock_response.raise_for_status.return_value = None
+
+    with patch("src.apollo.APOLLO_API_KEY", "test-key"):
+        with patch("src.apollo.httpx.AsyncClient") as mock_client:
+            mock_instance = AsyncMock()
+            mock_instance.post.return_value = mock_response
+            mock_client.return_value.__aenter__.return_value = mock_instance
+
+            people = [{"id": "abc123", "first_name": "John", "last_name": "Doe"}]
+            results = await enrich_people(people)
+
+            assert len(results) == 1
+            assert results[0]["email"] == "john@acme.com"
+
+
+@pytest.mark.asyncio
+async def test_enrich_people_empty_list():
+    """Test enriching empty list returns empty list."""
+    results = await enrich_people([])
+    assert results == []

@@ -55,3 +55,52 @@ async def search_people(
     except Exception as e:
         log.error("apollo_search_error", error=str(e), domain=domain)
         return []
+
+
+async def enrich_people(people: list[dict]) -> list[dict]:
+    """Bulk enrich people to get email addresses.
+
+    Accepts up to 10 people per call.
+    Returns enriched person dicts with email field.
+    """
+    if not people:
+        return []
+
+    if not APOLLO_API_KEY:
+        log.warning("apollo_api_key_not_set")
+        return []
+
+    try:
+        # Build match requests from people data
+        details = []
+        for person in people[:10]:  # Max 10 per call
+            org = person.get("organization", {})
+            details.append({
+                "first_name": person.get("first_name"),
+                "last_name": person.get("last_name"),
+                "organization_name": org.get("name") if isinstance(org, dict) else None,
+                "linkedin_url": person.get("linkedin_url"),
+            })
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{BASE_URL}/people/bulk_match",
+                headers={
+                    "Content-Type": "application/json",
+                    "Cache-Control": "no-cache",
+                },
+                json={
+                    "api_key": APOLLO_API_KEY,
+                    "details": details,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            matches = data.get("matches", [])
+            log.info("apollo_enrich_complete", requested=len(people), matched=len(matches))
+            return matches
+
+    except Exception as e:
+        log.error("apollo_enrich_error", error=str(e))
+        return []
