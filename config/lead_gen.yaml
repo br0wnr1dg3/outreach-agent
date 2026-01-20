@@ -1,0 +1,20 @@
+search:
+  keywords:
+    - "collagen supplement"
+    - "beauty supplement"
+  countries: ["US", "GB", "AU"]
+  status: "ACTIVE"
+
+targeting:
+  job_titles:
+    - "Founder"
+    - "CEO"
+    - "Co-Founder"
+    - "Head of Marketing"
+    - "Marketing Director"
+    - "CMO"
+    - "VP Marketing"
+
+quotas:
+  leads_per_day: 20
+  max_companies_to_check: 50
