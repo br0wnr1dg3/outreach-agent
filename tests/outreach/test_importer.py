@@ -3,8 +3,8 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from src.db import init_db, get_leads_by_status
-from src.importer import import_leads
+from src.core.db import init_db, get_leads_by_status
+from src.outreach.importer import import_leads
 
 
 def test_import_leads_from_excel():

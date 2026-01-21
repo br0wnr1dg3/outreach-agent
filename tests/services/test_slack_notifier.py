@@ -1,4 +1,4 @@
-# tests/test_slack_notifier.py
+# tests/services/test_slack_notifier.py
 """Tests for Slack notifier service."""
 
 import pytest

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.fb_ads import extract_domain, search_ads, get_advertiser_domains
+from src.clients.fb_ads import extract_domain, search_ads, get_advertiser_domains
 
 
 def test_extract_domain_simple():
@@ -25,8 +25,9 @@ def test_extract_domain_invalid_url():
 @pytest.mark.asyncio
 async def test_search_ads_returns_results():
     mock_response = MagicMock()
+    # API returns {"searchResults": [...]}
     mock_response.json.return_value = {
-        "data": [
+        "searchResults": [
             {
                 "page_id": "123",
                 "page_name": "Glossy Brand",
@@ -44,8 +45,8 @@ async def test_search_ads_returns_results():
     mock_client = AsyncMock()
     mock_client.get = AsyncMock(return_value=mock_response)
 
-    with patch("src.fb_ads.SCRAPECREATORS_API_KEY", "test-api-key"):
-        with patch("src.fb_ads.httpx.AsyncClient") as mock_async_client:
+    with patch("src.clients.fb_ads.SCRAPECREATORS_API_KEY", "test-api-key"):
+        with patch("src.clients.fb_ads.httpx.AsyncClient") as mock_async_client:
             mock_async_client.return_value.__aenter__.return_value = mock_client
 
             results = await search_ads("collagen supplement", country="US", limit=10)
@@ -57,14 +58,14 @@ async def test_search_ads_returns_results():
 
 @pytest.mark.asyncio
 async def test_search_ads_no_api_key_returns_empty():
-    with patch("src.fb_ads.SCRAPECREATORS_API_KEY", ""):
+    with patch("src.clients.fb_ads.SCRAPECREATORS_API_KEY", ""):
         results = await search_ads("test keyword")
         assert results == []
 
 
 @pytest.mark.asyncio
 async def test_get_advertiser_domains_dedupes_by_domain():
-    with patch("src.fb_ads.search_ads") as mock_search:
+    with patch("src.clients.fb_ads.search_ads") as mock_search:
         mock_search.return_value = [
             {"page_id": "123", "page_name": "Brand A", "link_url": "https://brand-a.com/page1"},
             {"page_id": "123", "page_name": "Brand A", "link_url": "https://brand-a.com/page2"},
@@ -81,7 +82,7 @@ async def test_get_advertiser_domains_dedupes_by_domain():
 
 @pytest.mark.asyncio
 async def test_get_advertiser_domains_skips_invalid_urls():
-    with patch("src.fb_ads.search_ads") as mock_search:
+    with patch("src.clients.fb_ads.search_ads") as mock_search:
         mock_search.return_value = [
             {"page_id": "123", "page_name": "Valid", "link_url": "https://valid.com"},
             {"page_id": "456", "page_name": "Invalid", "link_url": ""},

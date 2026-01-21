@@ -4,13 +4,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.composer import generate_email_1, build_system_prompt
+from src.outreach.composer import generate_email_1, build_system_prompt
 
 
 def test_build_system_prompt():
     context = "## Company\nTest Corp\n\n## Value Prop\nWe do things."
+    email_template = "Hey {{first_name}},\n\n{{generated_joke_opener}}\n\nSincerely,\nChris"
 
-    prompt = build_system_prompt(context)
+    prompt = build_system_prompt(context, email_template)
 
     assert "Test Corp" in prompt
     assert "humor" in prompt.lower() or "joke" in prompt.lower()
@@ -24,7 +25,11 @@ async def test_generate_email_1():
 
         # Create config files
         (config_path / "context.md").write_text("## Company\nTest Corp")
-        (config_path / "email_1.md").write_text(
+        (config_path / "templates.md").write_text(
+            "---\n"
+            "template: email_1\n"
+            "delay_days: 0\n"
+            "---\n\n"
             "subject: {{generated_subject}}\n\n"
             "Hey {{first_name}},\n\n"
             "{{generated_joke_opener}}\n\n"
@@ -42,11 +47,12 @@ async def test_generate_email_1():
         posts = ["Just survived another Q4 planning session!"]
 
         mock_response = MagicMock()
+        # API returns JSON with "subject" and "body" fields
         mock_response.content = [
-            MagicMock(text='{"subject": "surviving q4 together", "joke_opener": "Your post about Q4 planning made me feel seen. Here I am adding to your inbox chaos."}')
+            MagicMock(text='{"subject": "surviving q4 together", "body": "Your post about Q4 planning made me feel seen. Here I am adding to your inbox chaos."}')
         ]
 
-        with patch("src.composer.anthropic.AsyncAnthropic") as mock_anthropic:
+        with patch("src.outreach.composer.anthropic.AsyncAnthropic") as mock_anthropic:
             mock_client = AsyncMock()
             mock_client.messages.create.return_value = mock_response
             mock_anthropic.return_value = mock_client

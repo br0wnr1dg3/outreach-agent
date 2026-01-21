@@ -1,5 +1,6 @@
 """Configuration loading and models."""
 
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -65,7 +66,15 @@ def load_settings(config_path: Path = DEFAULT_CONFIG_PATH) -> Settings:
     with open(settings_file) as f:
         data = yaml.safe_load(f) or {}
 
-    return Settings(**data)
+    settings = Settings(**data)
+
+    # Check env var for connected_account_id if not set in YAML
+    if not settings.gmail.connected_account_id:
+        env_account_id = os.environ.get("COMPOSIO_CONNECTED_ACCOUNT_ID", "")
+        if env_account_id:
+            settings.gmail.connected_account_id = env_account_id
+
+    return settings
 
 
 def load_template(config_path: Path, template_name: str) -> str:
@@ -151,3 +160,12 @@ def load_templates(config_path: Path = DEFAULT_CONFIG_PATH) -> list[EmailTemplat
         i += 2
 
     return templates
+
+
+def get_template_by_name(config_path: Path, name: str) -> EmailTemplate:
+    """Get a specific email template by name from templates.md."""
+    templates = load_templates(config_path)
+    for t in templates:
+        if t.name == name:
+            return t
+    raise ValueError(f"Template '{name}' not found in templates.md")

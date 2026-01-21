@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.sender import send_new_email, send_reply_email
+from src.outreach.sender import send_new_email, send_reply_email
 
 
 @pytest.mark.asyncio
@@ -16,7 +16,7 @@ async def test_send_new_email():
     }
     mock_result.error = None
 
-    with patch("src.sender._get_client") as mock_get_client:
+    with patch("src.outreach.sender._get_client") as mock_get_client:
         mock_client = MagicMock()
         mock_client.tools.execute.return_value = mock_result
         mock_get_client.return_value = mock_client
@@ -42,7 +42,7 @@ async def test_send_reply_email():
     }
     mock_result.error = None
 
-    with patch("src.sender._get_client") as mock_get_client:
+    with patch("src.outreach.sender._get_client") as mock_get_client:
         mock_client = MagicMock()
         mock_client.tools.execute.return_value = mock_result
         mock_get_client.return_value = mock_client

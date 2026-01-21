@@ -8,7 +8,7 @@ from typing import Optional
 import anthropic
 import structlog
 
-from src.core.config import DEFAULT_CONFIG_PATH, load_template, render_template
+from src.core.config import DEFAULT_CONFIG_PATH, get_template_by_name, load_template, render_template
 
 log = structlog.get_logger()
 
@@ -28,53 +28,50 @@ def build_system_prompt(context: str, email_template: str) -> str:
 ```
 
 ## Your mission:
-1. Find something specific to riff on - a post, a phrase they used, a quirky detail, anything with texture
-2. Write an actual JOKE or witty observation (1-2 lines max) - not just a compliment
+1. Find something specific from their recent posts to reference and riff on
+2. Write an actual JOKE (1-2 lines max) - sharp, unexpected, memorable
 3. Write a natural transition from joke to the ask
 4. Keep the core ask/CTA from the template but adjust wording slightly if needed for flow
-5. Self-deprecating > clever. Warm > edgy. Never mean.
 
-## What counts as a joke vs. flattery:
-FLATTERY (boring): "You manage a huge team and that's intimidating" - just restating their accomplishments
-JOKE (good): Comedic contrast between their success and your struggles, or a specific self-aware observation
-FLATTERY (boring): "Your career is impressive and I'm questioning my life choices" - vague self-deprecation
-JOKE (good): Reference something specific they said/did and make a witty observation about it
+## How jokes work in these emails:
 
-The key: jokes have SURPRISE or CONTRAST. Flattery is just "you're great, I'm not."
+STRUCTURE: [Specific reference to recent content] + [Sharp or absurdist punchline]
 
-## Examples of what works:
-- Light teasing about their industry
-- Self-aware jokes about cold emails
-- Observational humor about something on their profile
-- Playful takes on their job title
+The reference proves you read their stuff. The punchline should surprise or delight.
 
-## What to avoid:
-- Political humor (no references to elections, politicians, government, DOGE, etc.)
-- Mocking their career path, job changes, or work history
-- Judgmental observations about their company or role
+## Recency rule:
+- ONLY reference posts/content if they're from the last 2 weeks
+- If no recent posts, use pure cold-email situational humor instead
+- Never reference stale content—it's worse than no reference at all
+
+## What makes a joke land:
+
+1. **Riff on what they actually said** - Don't just compliment it, play with it
+   - "You called out the 'comment TRENDS for the report' move as cringe. So I'm cold emailing you instead—much classier."
+   - "Your take on brands needing to give up control was sharp. Somewhere a VP of Marketing just felt a chill."
+
+2. **Absurdist angles** - Unexpected comparisons, playful escalation
+   - "Your post on Gen Alpha shaping purchase decisions was eye-opening. I'm now convinced my 8-year-old nephew has more market influence than I do."
+   - "Read your breakdown on creator attribution. I understood about 80% of it, which puts me ahead of most CMOs I've talked to."
+
+3. **Meta cold-email humor** (fallback when no recent content)
+   - "The playbook says I should pretend we have a mutual connection. We don't. So here's me just... asking."
+   - "I could manufacture some fake rapport here but honestly, let's skip to the part where I pitch you something."
+
+## What's OFF-LIMITS:
+- Implying their content confused, bored, or overwhelmed you
+- Backhanded compliments disguised as self-deprecation ("questioning my career", "not smart enough")
+- Their job title, career path, or company as punchline
+- Anything that makes them the butt of the joke
+- Political humor (elections, politicians, government, DOGE, etc.)
 - Jokes about appearance or personal life
-- Trying too hard (desperation isn't funny)
 - Generic humor that could apply to anyone
 
-## Where the joke should land:
-- On YOU (the sender) - "I stalked your LinkedIn for 20 minutes and this is the best I've got"
-- On the SITUATION (cold emailing is awkward) - "This is the part where I pretend we have mutual context"
-- On YOUR REACTION to them - "Your post made me feel inadequate" / "I read your headline three times and I'm still confused (that's on me)"
-- NEVER on THEM - their choices, career, company, brand, or work are off-limits for humor
+The target is always: the situation, the industry, yourself, or a playful observation about what they said. Never them personally.
 
-## Critical rule:
-If you notice something interesting/confusing/unusual about their profile, DO NOT comment on it directly. Instead, make the joke about YOUR confused reaction or YOUR inadequacy.
-BAD: "I can't tell if you're building a cult or an agency" (judges them)
-GOOD: "I've read your headline four times and I'm still not smart enough to summarize what you do" (judges yourself)
-
-When referencing their accomplishments, be clearly IMPRESSED, not ambiguously tired/bored.
-NEVER use "tired", "nap", "lie down", "exhausted", "sleepy" - these read as "you bored me"
-BAD: "I scrolled your deals and need a nap" (sounds dismissive)
-GOOD: "I scrolled your deals and now I'm questioning my entire career" (clearly impressed/intimidated)
-
-## If their LinkedIn is empty or you can't find anything:
-- Make a joke about how clean/empty their profile is
-- Or be self-aware about having nothing to reference
+## If their LinkedIn is empty or no recent posts:
+- Use pure cold-email meta humor
+- Example: "I looked for something clever to reference on your profile. LinkedIn gave me nothing. So here's the pitch without the pretense."
 
 ## Output format:
 Return a JSON object with exactly two fields:
@@ -82,7 +79,7 @@ Return a JSON object with exactly two fields:
 - "body": The FULL email body (everything after "Hey [Name],")
 
 Example output:
-{{"subject": "i read your whole linkedin", "body": "Spent way too long scrolling your profile trying to find something clever to say. This is apparently the best I could do.\\n\\nI'm researching how marketers leverage affiliates and creators to create a content machine for paid media campaigns. I'd love to ask your advice to help round out my research & can share some of what I've learned so far. Do you have 10min for a short interview in the next few days?\\n\\nChris"}}
+{{"subject": "your gen alpha take was spot on", "body": "Your post on Gen Alpha shaping purchase decisions was eye-opening. I'm now convinced my 8-year-old nephew has more market influence than I do.\\n\\nAnyway—I'm researching how marketers leverage creators to build a content machine for paid media. I'd love to ask your advice to help round out my research & can share some of what I've learned so far. Do you have 10min for a short interview in the next few days?\\n\\nChris"}}
 """
 
 
@@ -98,7 +95,8 @@ async def generate_email_1(
     """
     profile = profile or {}
     context = load_template(config_path, "context.md")
-    email_template = load_template(config_path, "email_1.md")
+    email_1 = get_template_by_name(config_path, "email_1")
+    email_template = f"subject: {email_1.subject}\n\n{email_1.body}"
 
     # Build the user message with lead info
     posts_text = "\n".join(f"- {post}" for post in posts) if posts else "No recent posts found."
@@ -180,7 +178,7 @@ Remember: Return valid JSON with "subject" and "body" fields. The body should be
 
 def generate_fallback_email(lead: dict, config_path: Path) -> tuple[str, str]:
     """Generate a fallback email when Claude fails."""
-    email_template = load_template(config_path, "email_1.md")
+    email_1 = get_template_by_name(config_path, "email_1")
 
     variables = {
         "generated_subject": "cold email but make it honest",
@@ -190,13 +188,7 @@ def generate_fallback_email(lead: dict, config_path: Path) -> tuple[str, str]:
         "company": lead.get("company", "your company"),
     }
 
-    body = render_template(email_template, variables)
-
-    lines = body.strip().split("\n")
-    if lines[0].lower().startswith("subject:"):
-        subject = lines[0].split(":", 1)[1].strip()
-        body = "\n".join(lines[1:]).strip()
-    else:
-        subject = "cold email but make it honest"
+    subject = render_template(email_1.subject, variables)
+    body = render_template(email_1.body, variables)
 
     return subject, body

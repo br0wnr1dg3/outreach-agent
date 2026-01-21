@@ -5,8 +5,8 @@ import os
 
 from click.testing import CliRunner
 
-from src.cli import cli, import_from_leads_folder
-from src.db import init_db, get_leads_by_status
+from src.core.cli import cli, import_from_leads_folder
+from src.core.db import init_db, get_leads_by_status
 
 
 def test_cli_status_empty():
@@ -112,7 +112,7 @@ quotas:
   max_companies_to_check: 10
 """)
 
-    with patch("src.cli.generate_leads") as mock_generate:
+    with patch("src.core.cli.generate_leads") as mock_generate:
         mock_generate.return_value = {
             "leads_added": 0,
             "companies_checked": 3,
@@ -138,7 +138,7 @@ quotas:
 def test_agent_command_exists():
     """CLI should have agent command."""
     from click.testing import CliRunner
-    from src.cli import cli
+    from src.core.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ['agent', '--help'])
@@ -149,7 +149,7 @@ def test_agent_command_exists():
 def test_analyze_seeds_command_exists():
     """CLI should have analyze-seeds command."""
     from click.testing import CliRunner
-    from src.cli import cli
+    from src.core.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ['analyze-seeds', '--help'])

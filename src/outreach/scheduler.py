@@ -9,7 +9,7 @@ from typing import Optional
 
 import structlog
 
-from src.core.config import DEFAULT_CONFIG_PATH, Settings, load_settings, load_template, render_template
+from src.core.config import DEFAULT_CONFIG_PATH, Settings, load_settings, get_template_by_name, render_template
 from src.core.db import (
     DEFAULT_DB_PATH,
     get_leads_by_status,
@@ -162,10 +162,10 @@ async def process_followup(
     log.info("processing_followup", email=lead["email"], step=next_step)
 
     # Load appropriate template
-    template_name = f"followup_{next_step - 1}.md"
+    template_name = f"followup_{next_step - 1}"
     try:
-        template = load_template(config_path, template_name)
-    except FileNotFoundError:
+        template = get_template_by_name(config_path, template_name)
+    except ValueError:
         log.error("template_not_found", template=template_name)
         return False
 
@@ -174,15 +174,8 @@ async def process_followup(
         "first_name": lead["first_name"],
         "original_subject": lead["email_1_subject"],
     }
-    body = render_template(template, variables)
-
-    # Extract subject
-    lines = body.strip().split("\n")
-    if lines[0].lower().startswith("subject:"):
-        subject = lines[0].split(":", 1)[1].strip()
-        body = "\n".join(lines[1:]).strip()
-    else:
-        subject = f"re: {lead['email_1_subject']}"
+    subject = render_template(template.subject, variables)
+    body = render_template(template.body, variables)
 
     # Send
     try:

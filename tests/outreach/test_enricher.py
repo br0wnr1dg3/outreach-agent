@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.db import init_db, insert_lead, get_lead_by_id
-from src.enricher import enrich_lead, scrape_linkedin_posts
+from src.core.db import init_db, insert_lead, get_lead_by_id
+from src.outreach.enricher import enrich_lead, scrape_linkedin_posts
 
 
 @pytest.mark.asyncio
@@ -24,8 +24,8 @@ async def test_scrape_linkedin_posts_success():
         {"text": "Q4 is always organized chaos."},
     ]
 
-    with patch("src.enricher.APIFY_API_KEY", "test-key"):
-        with patch("src.enricher.httpx.AsyncClient") as mock_client:
+    with patch("src.outreach.enricher.APIFY_API_KEY", "test-key"):
+        with patch("src.outreach.enricher.httpx.AsyncClient") as mock_client:
             # Create mock responses
             run_response = MagicMock()
             run_response.json.return_value = run_response_data
@@ -58,8 +58,8 @@ async def test_scrape_linkedin_posts_empty():
     status_response_data = {"data": {"status": "SUCCEEDED"}}
     dataset_items = []
 
-    with patch("src.enricher.APIFY_API_KEY", "test-key"):
-        with patch("src.enricher.httpx.AsyncClient") as mock_client:
+    with patch("src.outreach.enricher.APIFY_API_KEY", "test-key"):
+        with patch("src.outreach.enricher.httpx.AsyncClient") as mock_client:
             run_response = MagicMock()
             run_response.json.return_value = run_response_data
             run_response.raise_for_status.return_value = None
@@ -96,8 +96,8 @@ async def test_enrich_lead_updates_db():
         mock_posts = ["Post about marketing", "Another post"]
         mock_profile = {"fullName": "Test User", "headline": "CEO"}
 
-        with patch("src.enricher.scrape_linkedin_posts", new_callable=AsyncMock) as mock_posts_scrape:
-            with patch("src.enricher.scrape_linkedin_profile", new_callable=AsyncMock) as mock_profile_scrape:
+        with patch("src.outreach.enricher.scrape_linkedin_posts", new_callable=AsyncMock) as mock_posts_scrape:
+            with patch("src.outreach.enricher.scrape_linkedin_profile", new_callable=AsyncMock) as mock_profile_scrape:
                 mock_posts_scrape.return_value = mock_posts
                 mock_profile_scrape.return_value = mock_profile
 

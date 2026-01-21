@@ -1,14 +1,84 @@
-# config/lead_gen.yaml
+# =============================================================================
+# LEAD GENERATION CONFIG
+# =============================================================================
+# This config controls the discovery pipeline - finding new leads automatically.
+#
+# The flow:
+# 1. Agent analyzes your SEED CUSTOMERS to understand your ICP
+# 2. Generates search keywords based on what those customers have in common
+# 3. Searches Facebook Ad Library for advertisers matching those keywords
+# 4. Looks up decision makers at those companies via Apollo
+# 5. Scores new leads by similarity to your seeds
+# 6. Adds qualified leads to your database
+#
+# START HERE: Add your seed customers below - everything else flows from that.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SEED CUSTOMERS (Required) - Your best existing customers
+# -----------------------------------------------------------------------------
+# This is the PRIMARY INPUT. Add your best customers here.
+#
+# The agent uses these to:
+# - Analyze their websites, ads, and positioning
+# - Identify patterns (what industry, what they sell, company size, etc.)
+# - Generate search keywords automatically
+# - Score new leads by how similar they are to your winners
+#
+# Who to include:
+# - Customers with high lifetime value
+# - Customers who were easy to close
+# - Customers who love your product
+# - Customers who represent your ideal buyer
+#
+# The more seeds you add, the better the targeting works.
+# Aim for 5-10 seeds minimum.
+seed_customers:
+  - domain: "absolutecollagen.com"
+    name: "Absolute Collagen"
+  - domain: "spacegoods.com"
+    name: "Spacegoods"
+  - domain: "prfct.com"
+    name: "PRFCT"
+  - domain: "mothersearth.com"
+    name: "Mothers Earth"
+  - domain: "laundrysauce.com"
+    name: "Laundry Sauce"
+
+# -----------------------------------------------------------------------------
+# TARGETING: Who to find at each company
+# -----------------------------------------------------------------------------
+targeting:
+  # Job titles to search for, in order of preference
+  # Apollo will try to find people with these titles
+  # Put your ideal buyer persona titles first
+  title_priority:
+    - Influencer Marketing
+    - Marketing
+    - CMO
+    - Founder
+    - CEO
+    - COO
+
+  # How many contacts to get per company
+  # Usually 1 is enough - you don't want to spam the whole team
+  max_contacts_per_company: 3
+
+# -----------------------------------------------------------------------------
+# SEARCH: Filtering options for Facebook Ad Library
+# -----------------------------------------------------------------------------
 search:
-  keywords:
-    # Keyword: weight (0.0-1.0, higher = prioritize)
-    "collagen supplement": 0.8
-    "beauty supplement": 0.7
-    "wellness subscription": 0.6
-    "anti-aging skincare": 0.5
+  # Which countries to search for advertisers
+  # Use ISO 2-letter codes: US, GB, AU, CA, DE, FR, etc.
   countries: ["US", "GB", "AU"]
+
+  # Only find ACTIVE ads (currently running) vs ALL (includes paused)
   status: "ACTIVE"
+
+  # Domains to always skip - big platforms, marketplaces, competitors, etc.
+  # These show up a lot in ad results but aren't your target customers
   excluded_domains:
+    # Major platforms
     - amazon.com
     - facebook.com
     - meta.com
@@ -19,34 +89,44 @@ search:
     - pinterest.com
     - twitter.com
     - linkedin.com
+    # Marketplaces
     - walmart.com
     - target.com
     - ebay.com
     - etsy.com
+    # E-commerce platforms (not the brands themselves)
     - shopify.com
+    # Add your competitors here:
+    # - competitor1.com
+    # - competitor2.com
 
-targeting:
-  title_priority:
-    - CMO
-    - VP Marketing
-    - Head of Marketing
-    - Marketing Director
-    - Founder
-    - CEO
-    - COO
-  max_contacts_per_company: 1
+  # Optional: Manual keywords (usually not needed)
+  # The agent generates these from seed customer analysis.
+  # Only add manual keywords if you want to override or supplement.
+  # Format: "keyword": weight (0.0-1.0, higher = prioritize)
+  # keywords:
+  #   "specific product term": 0.8
 
+# -----------------------------------------------------------------------------
+# QUOTAS: Rate limiting and daily caps
+# -----------------------------------------------------------------------------
 quotas:
+  # How many new companies to process per day
+  # This affects your Apollo API usage
   companies_per_day: 10
+
+  # Max FB Ad Library searches per run
+  # Higher = more results but more API calls
   max_searches_per_run: 50
 
+# -----------------------------------------------------------------------------
+# SLACK: Notifications when runs complete (optional)
+# -----------------------------------------------------------------------------
 slack:
+  # Webhook URL for posting run summaries
+  # Get this from: Slack App Settings > Incoming Webhooks
+  # Leave as ${SLACK_WEBHOOK_URL} to use env var, or paste URL directly
   webhook_url: ${SLACK_WEBHOOK_URL}
-  channel: "#outreach-alerts"
 
-# Seed customers for ICP analysis
-seed_customers:
-  - domain: "example1.com"
-    name: "Example Company 1"
-  - domain: "example2.com"
-    name: "Example Company 2"
+  # Channel to post to (must match webhook config)
+  channel: "#outreach-alerts"

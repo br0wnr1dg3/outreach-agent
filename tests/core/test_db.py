@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from src.db import (
+from src.core.db import (
     init_db, get_connection,
     insert_lead, get_lead_by_email, get_leads_by_status,
     update_lead_status, count_sent_today,

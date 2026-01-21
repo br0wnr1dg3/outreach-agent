@@ -1,4 +1,4 @@
-# tests/test_embedding_service.py
+# tests/services/test_embedding_service.py
 """Tests for embedding service."""
 
 import pytest

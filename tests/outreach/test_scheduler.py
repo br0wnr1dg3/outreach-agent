@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.db import init_db, insert_lead, update_lead_email_sent, get_lead_by_id
-from src.config import Settings
-from src.scheduler import check_replies, get_due_leads, process_lead
+from src.core.db import init_db, insert_lead, update_lead_email_sent, get_lead_by_id
+from src.core.config import Settings
+from src.outreach.scheduler import check_replies, get_due_leads, process_lead
 
 
 @pytest.mark.asyncio
@@ -27,7 +27,7 @@ async def test_check_replies_marks_replied():
         )
 
         # Mock reply detection
-        with patch("src.scheduler.check_for_reply", new_callable=AsyncMock) as mock_check:
+        with patch("src.outreach.scheduler.check_for_reply", new_callable=AsyncMock) as mock_check:
             mock_check.return_value = True  # They replied
 
             replied = await check_replies(db_path)

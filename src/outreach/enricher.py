@@ -127,10 +127,14 @@ async def scrape_linkedin_profile(linkedin_url: str) -> dict:
         return {}
 
 
-async def scrape_linkedin_posts(linkedin_url: str) -> list[str]:
+async def scrape_linkedin_posts(linkedin_url: str, max_age_days: int = 14) -> list[str]:
     """Scrape recent posts from a LinkedIn profile using Apify.
 
-    Returns list of post text content.
+    Args:
+        linkedin_url: LinkedIn profile URL
+        max_age_days: Only return posts newer than this many days (default 14)
+
+    Returns list of post text content (only recent posts).
     """
     if not APIFY_API_KEY:
         log.warning("apify_api_key_not_set")
@@ -150,14 +154,31 @@ async def scrape_linkedin_posts(linkedin_url: str) -> list[str]:
                 {"username": username},
             )
 
-            # Extract post text
+            # Extract post text, filtering by recency
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.now() - timedelta(days=max_age_days)
+
             posts = []
             for item in results:
                 text = item.get("text") or item.get("postText") or item.get("content")
-                if text:
-                    posts.append(text)
+                if not text:
+                    continue
 
-            log.info("apify_posts_complete", count=len(posts))
+                # Check post date if available
+                posted_at = item.get("posted_at", {})
+                date_str = posted_at.get("date") if isinstance(posted_at, dict) else None
+
+                if date_str:
+                    try:
+                        post_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                        if post_date < cutoff_date:
+                            continue  # Skip old posts
+                    except ValueError:
+                        pass  # If date parsing fails, include the post
+
+                posts.append(text)
+
+            log.info("apify_posts_complete", count=len(posts), filtered_by_days=max_age_days)
             return posts
 
     except Exception as e:

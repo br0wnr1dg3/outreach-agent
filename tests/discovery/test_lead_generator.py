@@ -5,8 +5,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, AsyncMock
 
-from src.db import init_db, is_company_searched, insert_searched_company, insert_lead
-from src.lead_generator import generate_leads
+from src.core.db import init_db, is_company_searched, insert_searched_company, insert_lead
+from src.discovery.lead_generator import generate_leads
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,7 @@ quotas:
   max_companies_to_check: 10
 """)
 
-        with patch("src.lead_generator.get_advertiser_domains") as mock_fb:
+        with patch("src.discovery.lead_generator.get_advertiser_domains") as mock_fb:
             mock_fb.return_value = [
                 {"domain": "test.com", "page_id": "123", "company_name": "Test Co"}
             ]
@@ -70,8 +70,8 @@ quotas:
   max_companies_to_check: 10
 """)
 
-        with patch("src.lead_generator.get_advertiser_domains") as mock_fb:
-            with patch("src.lead_generator.find_leads_at_company") as mock_apollo:
+        with patch("src.discovery.lead_generator.get_advertiser_domains") as mock_fb:
+            with patch("src.discovery.lead_generator.find_leads_at_company") as mock_apollo:
                 mock_fb.return_value = [
                     {"domain": "already-searched.com", "page_id": "111", "company_name": "Already"},
                     {"domain": "new-company.com", "page_id": "222", "company_name": "New"},

@@ -2,10 +2,10 @@
 Cheerful - creator affiliate platform that onboards creators and affiliates and drives content creation for brands on autopilot.
 
 ## Value Prop
-Help brands turn creators & affiliates into content machines for paid media without the usual chaos.
+Help DTC brands turn creators & affiliates into content machines for paid media without the usual chaos via gifting at scale.
 
 ## Tone
-Curious, casual, not salesy. Self-aware about cold emailing. Humor-first.
+Friendly, curious, slightly self-deprecating. Not salesy.
 
 ## CTA
-Quick call to learn about their creator strategy
+Short call to learn about their creator gifting strategy.

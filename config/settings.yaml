@@ -1,15 +1,48 @@
-# Sequence timing
+# =============================================================================
+# OUTREACH SETTINGS
+# =============================================================================
+# This config controls the email sending pipeline - timing, rate limits, and
+# Gmail settings.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SEQUENCE: Timing between emails
+# -----------------------------------------------------------------------------
+# The system sends a 3-email sequence:
+#   email_1    -> (wait email_2_delay_days) -> followup_1 -> (wait) -> followup_2
+#
+# Delays are cumulative from the previous email, not from email_1
 sequence:
+  # Days to wait after email_1 before sending followup_1
   email_2_delay_days: 3
-  email_3_delay_days: 4    # Days after email 2 (7 total from email 1)
 
-# Rate limiting
+  # Days to wait after followup_1 before sending followup_2
+  # (So 7 days total from email_1 if email_2_delay_days is 3)
+  email_3_delay_days: 4
+
+# -----------------------------------------------------------------------------
+# SENDING: Rate limits to avoid Gmail issues
+# -----------------------------------------------------------------------------
+# Gmail has sending limits. These settings help you stay under them and look
+# more human (not a spam bot sending 100 emails per second).
+#
+# Gmail limits (approximate):
+# - Free Gmail: ~100-150 emails/day
+# - Google Workspace: ~2000 emails/day (but start slow!)
 sending:
-  daily_limit: 50          # Max emails per day
-  min_delay_seconds: 20    # Min gap between sends
-  max_delay_seconds: 60    # Max gap between sends
+  # Maximum emails to send per day
+  # Start conservative (20-50) and increase gradually
+  daily_limit: 50
 
-# Gmail account
+  # Random delay between sends (seconds)
+  # Makes sending look more natural, not robotic
+  min_delay_seconds: 20
+  max_delay_seconds: 60
+
+# -----------------------------------------------------------------------------
+# GMAIL: Your sending identity
+# -----------------------------------------------------------------------------
 gmail:
+  # Name that appears in the "From" field
+  # e.g., "Chris" shows as "Chris <your-email@gmail.com>"
   from_name: "Chris"
-  connected_account_id: "ca_bg4QskRgpgof"  # From Composio dashboard - leave empty to use default

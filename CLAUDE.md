@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Getting Started
+
+**New to this project?** Run the setup wizard:
+```
+/outreach-setup
+```
+This walks you through configuring seed customers, targeting, company context, and API keys interactively.
+
+Or see `SETUP.md` for manual setup instructions.
+
 ## Project Overview
 
 Humor-first cold email outreach system with two pipelines:
@@ -134,3 +144,8 @@ tests/
 ├── services/       # test_slack_notifier.py
 └── integration/    # test_discovery_flow.py
 ```
+
+## Claude Code Skills
+
+Available commands:
+- `/outreach-setup` - Interactive setup wizard for new users

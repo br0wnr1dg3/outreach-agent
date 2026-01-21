@@ -1,4 +1,4 @@
-# tests/test_seed_analyzer.py
+# tests/services/test_seed_analyzer.py
 """Tests for seed analyzer service."""
 
 import pytest
