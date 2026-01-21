@@ -562,7 +562,60 @@ Use AskUserQuestion:
 
 ---
 
-## Step 11: Completion
+## Step 11: Test Slack Notifications
+
+Only run this step if `SLACK_WEBHOOK_URL` was provided in the API keys step.
+
+**Skip condition:** If Slack webhook not configured, skip silently and continue to Step 12.
+
+**If configured:**
+
+Send a test notification:
+
+```bash
+uv run python -c "
+import asyncio
+import httpx
+import os
+
+async def test_slack():
+    webhook_url = os.getenv('SLACK_WEBHOOK_URL')
+    if not webhook_url:
+        print('No Slack webhook configured')
+        return False
+
+    message = {
+        'text': '🧪 Test notification from Outreach Setup - your Slack integration is working!'
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(webhook_url, json=message)
+        if response.status_code == 200:
+            print('Test message sent successfully!')
+            return True
+        else:
+            print(f'Failed to send: {response.status_code}')
+            return False
+
+asyncio.run(test_slack())
+"
+```
+
+Ask: "Did you receive a test message in Slack?"
+
+Use AskUserQuestion:
+- "Yes, it worked" - Continue to automation setup
+- "No, didn't receive it" - Troubleshoot
+- "Skip Slack for now" - Continue without Slack
+
+**If troubleshooting:**
+- Ask them to verify the webhook URL is correct
+- Check channel permissions
+- Offer to re-enter the webhook URL and retry
+
+---
+
+## Step 12: Completion
 
 ```
 # Setup Complete!
