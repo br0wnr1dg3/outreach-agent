@@ -133,3 +133,24 @@ quotas:
         assert "DRY RUN" in result.output
         assert "Leads added: 0" in result.output
         assert "Companies checked: 3" in result.output
+
+
+def test_agent_command_exists():
+    """CLI should have agent command."""
+    from click.testing import CliRunner
+    from src.cli import cli
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['agent', '--help'])
+    assert result.exit_code == 0
+    assert 'discovery agent' in result.output.lower()
+
+
+def test_analyze_seeds_command_exists():
+    """CLI should have analyze-seeds command."""
+    from click.testing import CliRunner
+    from src.cli import cli
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['analyze-seeds', '--help'])
+    assert result.exit_code == 0

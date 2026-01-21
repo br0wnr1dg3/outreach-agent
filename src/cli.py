@@ -223,8 +223,56 @@ def generate(db_path: str, config_path: str, dry_run: bool, keyword: str):
     click.echo(f"  Companies checked: {result['companies_checked']}")
     click.echo(f"  Companies skipped (already searched): {result['companies_skipped']}")
 
+    if result.get("export_file"):
+        click.echo(f"\n  Exported to: {result['export_file']}")
+
     if result.get("quota_reached"):
         click.echo(f"\n  Daily quota reached!")
+
+
+@cli.command()
+@click.option('--target', default=10, help='Daily company target')
+@click.option('--dry-run', is_flag=True, help='Preview without writing to DB')
+def agent(target: int, dry_run: bool):
+    """Run the discovery agent to find and qualify leads."""
+    from src.agents.discovery_agent import DiscoveryAgent
+
+    click.echo(f"Starting discovery agent (target: {target} companies)")
+    if dry_run:
+        click.echo("DRY RUN - no database writes")
+
+    async def run_agent():
+        agent = DiscoveryAgent()
+        async for message in agent.run(daily_target=target, dry_run=dry_run):
+            if hasattr(message, 'result'):
+                click.echo(message.result)
+
+    asyncio.run(run_agent())
+    click.echo("Discovery agent complete")
+
+
+@cli.command('analyze-seeds')
+@click.argument('urls', nargs=-1, required=True)
+@click.option('--output', '-o', default='config/seed_profiles', help='Output directory')
+def analyze_seeds(urls: tuple, output: str):
+    """Analyze seed customer websites and save ICP profiles.
+
+    URLS: One or more website URLs to analyze
+    """
+    from pathlib import Path
+    from src.services.seed_analyzer import SeedAnalyzer
+
+    output_dir = Path(output)
+
+    async def run_analysis():
+        analyzer = SeedAnalyzer()
+        for url in urls:
+            click.echo(f"Analyzing {url}...")
+            path = await analyzer.analyze_and_save(url, output_dir)
+            click.echo(f"  Saved to {path}")
+
+    asyncio.run(run_analysis())
+    click.echo(f"\nSeed profiles saved to {output_dir}/")
 
 
 def main():
