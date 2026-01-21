@@ -269,3 +269,116 @@ Only `email` and `first_name` are required. The `linkedin_url` is used for perso
 **Discovery not finding leads**
 - Check your keywords in lead_gen.yaml match what companies advertise
 - Try broader keywords or different countries
+
+---
+
+## Setting Up Automation Later
+
+If you skipped automation during `/outreach-setup`, you can configure it anytime.
+
+### Using launchd (Recommended for macOS)
+
+launchd is macOS-native and handles sleep/wake properly - if your laptop is asleep at 9am, it runs when it wakes.
+
+**1. Create the plist file:**
+
+```bash
+nano ~/Library/LaunchAgents/com.outreach.daily.plist
+```
+
+**2. Paste this content (update the paths):**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.outreach.daily</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/uv</string>
+        <string>run</string>
+        <string>python</string>
+        <string>run.py</string>
+        <string>send</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/path/to/outreach-boilerplate</string>
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Weekday</key><integer>1</integer>
+            <key>Hour</key><integer>9</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>2</integer>
+            <key>Hour</key><integer>9</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>3</integer>
+            <key>Hour</key><integer>9</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>4</integer>
+            <key>Hour</key><integer>9</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>5</integer>
+            <key>Hour</key><integer>9</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+    </array>
+    <key>StandardOutPath</key>
+    <string>/tmp/outreach.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/outreach-error.log</string>
+</dict>
+</plist>
+```
+
+**3. Find your paths:**
+
+```bash
+# Get uv path
+which uv
+
+# Get project path
+pwd
+```
+
+**4. Load it:**
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.outreach.daily.plist
+```
+
+**5. Verify it's loaded:**
+
+```bash
+launchctl list | grep outreach
+```
+
+### Managing the Schedule
+
+- **Stop automation:** `launchctl unload ~/Library/LaunchAgents/com.outreach.daily.plist`
+- **Change time:** Edit the plist, unload, then reload
+- **Check logs:** `tail -f /tmp/outreach.log`
+- **Run manually:** `python run.py send`
+
+### Using cron (Alternative)
+
+If you prefer cron (note: doesn't handle sleep/wake on macOS):
+
+```bash
+crontab -e
+```
+
+Add:
+```
+0 9 * * 1-5 cd /path/to/outreach-boilerplate && uv run python run.py send >> /tmp/outreach.log 2>&1
+```
