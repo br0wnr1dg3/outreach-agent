@@ -739,36 +739,68 @@ Or run `/outreach-setup` again and choose automation at the end.
 
 ## Step 13: Completion
 
+Show the final summary based on what was configured:
+
 ```
 # Setup Complete!
 
-I've configured your outreach system:
+✓ Added {N} seed customers to config/lead_gen.yaml
+✓ Set targeting: {job_titles}
+✓ Wrote company context to config/context.md
+✓ Set Gmail from name to "{from_name}" in config/settings.yaml
+✓ Saved API keys to .env
+✓ Initialized database at data/outreach.db
+```
 
-✓ Added {N} seed customers to `config/lead_gen.yaml`
-✓ Set targeting to look for: {job_titles}
-✓ Wrote company context to `config/context.md`
-✓ Set Gmail from name to "{from_name}" in `config/settings.yaml`
-✓ Saved API keys to `.env`
-✓ Initialized database at `data/outreach.db`
+If lead generation was tested:
+```
+✓ Tested lead generation - {N} sample leads found
+```
 
-## Next Steps
+If email generation was tested:
+```
+✓ Tested email generation - sequence looks good
+```
 
-1. **Test the setup:**
-   ```bash
-   python run.py status
-   ```
+If Slack was tested:
+```
+✓ Tested Slack notifications
+```
 
-2. **Import some leads:**
-   ```bash
-   python run.py import leads/my_leads.xlsx
-   ```
+If automation was set up:
+```
+✓ Automation scheduled for weekdays at {hour}:00
+```
 
-3. **Or run the discovery agent to find leads automatically:**
-   ```bash
-   python run_agent.py
-   ```
+Then show next steps:
 
-See `SETUP.md` for more details on running the system.
+```
+Your outreach system is ready to go!
+
+## What happens now
+```
+
+If automation enabled:
+```
+- Monday-Friday at {hour}:00: The pipeline runs automatically
+- Checks for replies, sends follow-ups, imports new leads from /leads folder
+- Logs at /tmp/outreach.log
+```
+
+If automation not enabled:
+```
+- Run `python run.py send` to send emails manually
+- Run `python run_agent.py` to find new leads
+- See SETUP.md for automation instructions when you're ready
+```
+
+Always show:
+```
+## Manual commands
+
+python run.py status          # Check pipeline status
+python run.py send            # Run manually anytime
+python run_agent.py           # Find more leads via discovery
 ```
 
 ---
