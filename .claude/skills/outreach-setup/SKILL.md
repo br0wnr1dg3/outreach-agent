@@ -615,7 +615,129 @@ Use AskUserQuestion:
 
 ---
 
-## Step 12: Completion
+## Step 12: Setup Automation
+
+Offer to set up weekday automation using launchd.
+
+```
+## Automation Setup
+
+Want to run the outreach pipeline automatically on weekdays?
+
+This will:
+- Run Monday-Friday at 9am (or your preferred time)
+- Check for replies, send follow-ups, import new leads
+- Log output to /tmp/outreach.log
+- Handle laptop sleep/wake properly (runs when you wake up if asleep at 9am)
+```
+
+Use AskUserQuestion:
+- "Yes, set it up at 9am" - Create and load launchd plist
+- "Yes, but different time" - Ask for preferred time, then create plist
+- "No, I'll do it later" - Show instructions and continue
+
+**If yes (any time):**
+
+Get the required paths:
+
+```bash
+UV_PATH=$(which uv)
+PROJECT_PATH=$(pwd)
+```
+
+Create the launchd plist. The hour value should be the user's chosen hour (default 9):
+
+```bash
+HOUR=9  # Or user's chosen hour
+
+cat > ~/Library/LaunchAgents/com.outreach.daily.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.outreach.daily</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${UV_PATH}</string>
+        <string>run</string>
+        <string>python</string>
+        <string>run.py</string>
+        <string>send</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>${PROJECT_PATH}</string>
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Weekday</key><integer>1</integer>
+            <key>Hour</key><integer>${HOUR}</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>2</integer>
+            <key>Hour</key><integer>${HOUR}</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>3</integer>
+            <key>Hour</key><integer>${HOUR}</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>4</integer>
+            <key>Hour</key><integer>${HOUR}</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+        <dict>
+            <key>Weekday</key><integer>5</integer>
+            <key>Hour</key><integer>${HOUR}</integer>
+            <key>Minute</key><integer>0</integer>
+        </dict>
+    </array>
+    <key>StandardOutPath</key>
+    <string>/tmp/outreach.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/outreach-error.log</string>
+</dict>
+</plist>
+EOF
+```
+
+Load it:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.outreach.daily.plist
+```
+
+Verify:
+
+```bash
+launchctl list | grep outreach
+```
+
+Tell the user:
+```
+Automation scheduled! The pipeline will run Monday-Friday at {HOUR}:00.
+
+Logs: /tmp/outreach.log
+Stop: launchctl unload ~/Library/LaunchAgents/com.outreach.daily.plist
+```
+
+Store: `automation_enabled = true/false`, `automation_hour = N`
+
+**If no (do it later):**
+
+Tell the user:
+```
+No problem! When you're ready, see the "Setting Up Automation Later" section in SETUP.md.
+
+Or run `/outreach-setup` again and choose automation at the end.
+```
+
+---
+
+## Step 13: Completion
 
 ```
 # Setup Complete!
