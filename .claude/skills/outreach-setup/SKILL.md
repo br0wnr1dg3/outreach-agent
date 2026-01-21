@@ -32,6 +32,12 @@ We'll configure:
 6. **Gmail Settings** - Your sending identity
 7. **Database** - Initialize SQLite for storing leads
 
+Then we'll test everything:
+8. **Test Lead Generation** - Preview sample leads before going live
+9. **Test Email Generation** - Preview a sample email sequence
+10. **Test Slack** - Verify notifications work (if configured)
+11. **Setup Automation** - Schedule weekday runs
+
 Let's start!
 ```
 
