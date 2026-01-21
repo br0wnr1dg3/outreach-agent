@@ -346,7 +346,87 @@ This creates:
 
 ---
 
-## Step 9: Completion
+## Step 9: Test Lead Generation
+
+If Apollo and ScrapeCreators API keys were provided, test the discovery pipeline.
+
+**Skip condition:** If keys are missing, say:
+```
+## Lead Generation Test
+
+Skipping lead generation test - Apollo and ScrapeCreators API keys not configured.
+
+You can test this later by running:
+   python run_agent.py
+```
+
+**If keys are configured:**
+
+Run the discovery pipeline with a limit of 3-5 leads using bash:
+
+```bash
+uv run python -c "
+import asyncio
+from src.discovery.lead_generator import generate_leads
+from pathlib import Path
+
+async def test():
+    # Run with a small limit
+    result = await generate_leads(dry_run=False)
+    return result
+
+result = asyncio.run(test())
+print(f'Leads found: {result[\"leads_added\"]}')
+print(f'Companies checked: {result[\"companies_checked\"]}')
+"
+```
+
+Then query the database to get the leads:
+
+```bash
+uv run python -c "
+import sqlite3
+conn = sqlite3.connect('data/outreach.db')
+conn.row_factory = sqlite3.Row
+cursor = conn.execute('SELECT email, first_name, last_name, company, title, linkedin_url FROM leads ORDER BY created_at DESC LIMIT 5')
+leads = [dict(row) for row in cursor.fetchall()]
+for lead in leads:
+    print(f\"{lead['company']} | {lead['first_name']} {lead['last_name']} | {lead['title']} | {lead['email']} | {lead['linkedin_url']}\")
+"
+```
+
+Display the results to the user:
+
+```
+## Sample Leads Found
+
+| Company | Person | Title | Email | LinkedIn |
+|---------|--------|-------|-------|----------|
+| Acme DTC | Sarah Chen | VP Marketing | sarah@acmedtc.com | linkedin.com/in/sarahchen |
+| Brand Co | Mike Johnson | CMO | mike@brandco.com | linkedin.com/in/mikejohnson |
+...
+
+These were found by searching for companies similar to your seed customers.
+```
+
+Ask: "Do these leads match your ideal customer profile?"
+
+Use AskUserQuestion:
+- "Yes, looks good" - Continue to email testing
+- "No, needs adjustment" - Ask what's wrong
+
+**If needs adjustment:**
+- Ask: "What's off? Too big/small? Wrong industry? Wrong titles?"
+- Based on feedback, update `config/lead_gen.yaml`:
+  - Wrong titles → update `targeting.title_priority`
+  - Wrong industry → update `search.keywords` or `search.excluded_domains`
+  - Companies too big/small → add size filters or excluded domains
+- Re-run the test
+- Repeat until confirmed
+
+---
+
+## Step 10: Completion
 
 ```
 # Setup Complete!
