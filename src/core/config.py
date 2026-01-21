@@ -1,5 +1,6 @@
 """Configuration loading and models."""
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -89,3 +90,64 @@ def load_lead_gen_config(config_path: Path = DEFAULT_CONFIG_PATH) -> LeadGenConf
     with open(config_file) as f:
         data = yaml.safe_load(f) or {}
     return LeadGenConfig(**data)
+
+
+class EmailTemplate(BaseModel):
+    """Email template with timing metadata."""
+    name: str
+    delay_days: int
+    subject: str
+    body: str
+
+
+def load_templates(config_path: Path = DEFAULT_CONFIG_PATH) -> list[EmailTemplate]:
+    """Load and parse templates.md into list of EmailTemplate objects."""
+    templates_file = config_path / "templates.md"
+
+    if not templates_file.exists():
+        return []
+
+    content = templates_file.read_text()
+
+    # Split on frontmatter delimiters (---)
+    sections = re.split(r'^---\s*$', content, flags=re.MULTILINE)
+
+    templates = []
+    # Process pairs of (frontmatter, body)
+    i = 1
+    while i < len(sections) - 1:
+        frontmatter = sections[i].strip()
+        body = sections[i + 1].strip()
+
+        if not frontmatter:
+            i += 2
+            continue
+
+        # Parse YAML frontmatter
+        meta = yaml.safe_load(frontmatter)
+        if not meta or "template" not in meta:
+            i += 2
+            continue
+
+        # Extract subject from body
+        lines = body.split('\n')
+        subject = ""
+        body_start = 0
+        for idx, line in enumerate(lines):
+            if line.startswith('subject:'):
+                subject = line.replace('subject:', '').strip()
+                body_start = idx + 1
+                break
+
+        body_content = '\n'.join(lines[body_start:]).strip()
+
+        templates.append(EmailTemplate(
+            name=meta["template"],
+            delay_days=meta.get("delay_days", 0),
+            subject=subject,
+            body=body_content,
+        ))
+
+        i += 2
+
+    return templates
