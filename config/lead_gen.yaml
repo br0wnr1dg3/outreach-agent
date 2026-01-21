@@ -43,3 +43,10 @@ quotas:
 slack:
   webhook_url: ${SLACK_WEBHOOK_URL}
   channel: "#outreach-alerts"
+
+# Seed customers for ICP analysis
+seed_customers:
+  - domain: "example1.com"
+    name: "Example Company 1"
+  - domain: "example2.com"
+    name: "Example Company 2"
