@@ -51,7 +51,7 @@ async def test_generate_email_1():
             mock_client.messages.create.return_value = mock_response
             mock_anthropic.return_value = mock_client
 
-            subject, body = await generate_email_1(lead, posts, config_path)
+            subject, body = await generate_email_1(lead, posts, {}, config_path)
 
             assert "q4" in subject.lower()
             assert "Sarah" in body

@@ -15,18 +15,32 @@ log = structlog.get_logger()
 MODEL = "claude-opus-4-5-20251101"
 
 
-def build_system_prompt(context: str) -> str:
+def build_system_prompt(context: str, email_template: str) -> str:
     """Build the system prompt for Claude."""
-    return f"""You are writing cold outreach emails. Your job is to generate a personalized, genuinely funny opening line based on their LinkedIn profile and posts.
+    return f"""You are writing cold outreach emails. Your job is to write the FULL email using the template as a guide, with a personalized, genuinely funny opening based on their LinkedIn profile.
 
 ## Context about the sender:
 {context}
 
+## Email template (use as a guide, adjust for natural flow):
+```
+{email_template}
+```
+
 ## Your mission:
-1. Find something to riff on - a post, their title, their company, anything
-2. Write a SHORT joke or witty observation (1-2 lines max)
-3. Self-deprecating > clever. Warm > edgy. Never mean.
-4. It's okay if it's not hilarious - aim for a smile, not a laugh track
+1. Find something specific to riff on - a post, a phrase they used, a quirky detail, anything with texture
+2. Write an actual JOKE or witty observation (1-2 lines max) - not just a compliment
+3. Write a natural transition from joke to the ask
+4. Keep the core ask/CTA from the template but adjust wording slightly if needed for flow
+5. Self-deprecating > clever. Warm > edgy. Never mean.
+
+## What counts as a joke vs. flattery:
+FLATTERY (boring): "You manage a huge team and that's intimidating" - just restating their accomplishments
+JOKE (good): Comedic contrast between their success and your struggles, or a specific self-aware observation
+FLATTERY (boring): "Your career is impressive and I'm questioning my life choices" - vague self-deprecation
+JOKE (good): Reference something specific they said/did and make a witty observation about it
+
+The key: jokes have SURPRISE or CONTRAST. Flattery is just "you're great, I'm not."
 
 ## Examples of what works:
 - Light teasing about their industry
@@ -35,10 +49,28 @@ def build_system_prompt(context: str) -> str:
 - Playful takes on their job title
 
 ## What to avoid:
-- Anything that could be read as insulting
+- Political humor (no references to elections, politicians, government, DOGE, etc.)
+- Mocking their career path, job changes, or work history
+- Judgmental observations about their company or role
 - Jokes about appearance or personal life
 - Trying too hard (desperation isn't funny)
 - Generic humor that could apply to anyone
+
+## Where the joke should land:
+- On YOU (the sender) - "I stalked your LinkedIn for 20 minutes and this is the best I've got"
+- On the SITUATION (cold emailing is awkward) - "This is the part where I pretend we have mutual context"
+- On YOUR REACTION to them - "Your post made me feel inadequate" / "I read your headline three times and I'm still confused (that's on me)"
+- NEVER on THEM - their choices, career, company, brand, or work are off-limits for humor
+
+## Critical rule:
+If you notice something interesting/confusing/unusual about their profile, DO NOT comment on it directly. Instead, make the joke about YOUR confused reaction or YOUR inadequacy.
+BAD: "I can't tell if you're building a cult or an agency" (judges them)
+GOOD: "I've read your headline four times and I'm still not smart enough to summarize what you do" (judges yourself)
+
+When referencing their accomplishments, be clearly IMPRESSED, not ambiguously tired/bored.
+NEVER use "tired", "nap", "lie down", "exhausted", "sleepy" - these read as "you bored me"
+BAD: "I scrolled your deals and need a nap" (sounds dismissive)
+GOOD: "I scrolled your deals and now I'm questioning my entire career" (clearly impressed/intimidated)
 
 ## If their LinkedIn is empty or you can't find anything:
 - Make a joke about how clean/empty their profile is
@@ -47,40 +79,61 @@ def build_system_prompt(context: str) -> str:
 ## Output format:
 Return a JSON object with exactly two fields:
 - "subject": A 3-6 word subject line, lowercase, curiosity-inducing
-- "joke_opener": Your 1-2 sentence personalized joke opening
+- "body": The FULL email body (everything after "Hey [Name],")
 
 Example output:
-{{"subject": "your linkedin is suspiciously clean", "joke_opener": "Scrolled your whole profile looking for something clever to reference and you've given me nothing. No hot takes, no humble brags. I respect the mystery."}}
+{{"subject": "i read your whole linkedin", "body": "Spent way too long scrolling your profile trying to find something clever to say. This is apparently the best I could do.\\n\\nI'm researching how marketers leverage affiliates and creators to create a content machine for paid media campaigns. I'd love to ask your advice to help round out my research & can share some of what I've learned so far. Do you have 10min for a short interview in the next few days?\\n\\nChris"}}
 """
 
 
 async def generate_email_1(
     lead: dict,
     posts: list[str],
+    profile: dict = None,
     config_path: Path = DEFAULT_CONFIG_PATH
 ) -> tuple[str, str]:
     """Generate personalized email 1 using Claude.
 
     Returns (subject, body) tuple.
     """
+    profile = profile or {}
     context = load_template(config_path, "context.md")
     email_template = load_template(config_path, "email_1.md")
 
     # Build the user message with lead info
     posts_text = "\n".join(f"- {post}" for post in posts) if posts else "No recent posts found."
 
-    user_message = f"""Generate a personalized joke opener for this lead:
+    # Use scraped profile data if available, fallback to lead dict (from Excel)
+    first_name = profile.get("firstName") or lead.get('first_name', '')
+    name = profile.get("fullName") or f"{lead.get('first_name', '')} {lead.get('last_name', '')}".strip()
+    company = profile.get("companyName") or lead.get('company', 'Unknown')
+    title = profile.get("headline") or lead.get('title', 'Unknown')
+    about = profile.get("summary") or ""
+    location = profile.get("location") or ""
 
-Name: {lead.get('first_name', '')} {lead.get('last_name', '')}
-Company: {lead.get('company', 'Unknown')}
-Title: {lead.get('title', 'Unknown')}
+    # Build profile section
+    profile_section = f"""Name: {name}
+Company: {company}
+Title/Headline: {title}"""
+
+    if about:
+        # Truncate about to avoid token bloat
+        about_preview = about[:500] + "..." if len(about) > 500 else about
+        profile_section += f"\nAbout: {about_preview}"
+
+    if location:
+        profile_section += f"\nLocation: {location}"
+
+    user_message = f"""Write a personalized cold email for this lead:
+
+{profile_section}
 
 Their recent LinkedIn posts:
 {posts_text}
 
-Remember: Return valid JSON with "subject" and "joke_opener" fields only."""
+Remember: Return valid JSON with "subject" and "body" fields. The body should be the FULL email after "Hey {first_name},"."""
 
-    system_prompt = build_system_prompt(context)
+    system_prompt = build_system_prompt(context, email_template)
 
     log.info("generating_email", email=lead.get("email"))
 
@@ -89,7 +142,7 @@ Remember: Return valid JSON with "subject" and "joke_opener" fields only."""
 
         response = await client.messages.create(
             model=MODEL,
-            max_tokens=500,
+            max_tokens=800,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )
@@ -107,28 +160,14 @@ Remember: Return valid JSON with "subject" and "joke_opener" fields only."""
         result = json.loads(response_text)
 
         subject = result.get("subject", "quick question")
-        joke_opener = result.get("joke_opener", "")
+        body = result.get("body", "")
 
-        # Render the template
-        variables = {
-            "generated_subject": subject,
-            "generated_joke_opener": joke_opener,
-            "first_name": lead.get("first_name", ""),
-            "last_name": lead.get("last_name", ""),
-            "company": lead.get("company", "your company"),
-        }
-
-        body = render_template(email_template, variables)
-
-        # Extract subject from body if template has it
-        lines = body.strip().split("\n")
-        if lines[0].lower().startswith("subject:"):
-            subject = lines[0].split(":", 1)[1].strip()
-            body = "\n".join(lines[1:]).strip()
+        # Prepend greeting
+        full_body = f"Hey {first_name},\n\n{body}"
 
         log.info("email_generated", email=lead.get("email"), subject=subject)
 
-        return subject, body
+        return subject, full_body
 
     except json.JSONDecodeError as e:
         log.error("json_parse_error", error=str(e), response=response_text[:200])

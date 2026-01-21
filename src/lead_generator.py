@@ -1,8 +1,10 @@
 """Lead generation orchestrator."""
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 
+import openpyxl
 import structlog
 
 from src.config import load_lead_gen_config, DEFAULT_CONFIG_PATH
@@ -15,6 +17,47 @@ from src.fb_ads import get_advertiser_domains
 from src.apollo import find_leads_at_company
 
 log = structlog.get_logger()
+
+LEADS_FOLDER = Path("leads")
+
+
+def export_leads_to_xlsx(leads: list[dict]) -> Path | None:
+    """Export leads to xlsx file in /leads folder.
+
+    Returns path to created file, or None if no leads.
+    """
+    if not leads:
+        return None
+
+    # Ensure leads folder exists
+    LEADS_FOLDER.mkdir(exist_ok=True)
+
+    # Create filename with timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = LEADS_FOLDER / f"leads_{timestamp}.xlsx"
+
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    # Header row
+    headers = ["email", "first_name", "last_name", "company", "title", "linkedin_url"]
+    ws.append(headers)
+
+    # Data rows
+    for lead in leads:
+        ws.append([
+            lead.get("email"),
+            lead.get("first_name"),
+            lead.get("last_name"),
+            lead.get("company"),
+            lead.get("title"),
+            lead.get("linkedin_url"),
+        ])
+
+    wb.save(filename)
+    log.info("leads_exported_to_xlsx", filename=str(filename), count=len(leads))
+    return filename
 
 
 async def generate_leads(
@@ -42,8 +85,12 @@ async def generate_leads(
         "companies_checked": 0,
         "companies_skipped": 0,
         "quota_reached": False,
-        "dry_run": dry_run
+        "dry_run": dry_run,
+        "export_file": None,
     }
+
+    # Track leads for xlsx export
+    generated_leads: list[dict] = []
 
     keywords = [keyword_override] if keyword_override else config.search.keywords
 
@@ -66,6 +113,11 @@ async def generate_leads(
                 break
 
             domain = advertiser["domain"]
+
+            # Skip excluded domains (marketplaces, platforms, etc.)
+            if any(excluded in domain for excluded in config.search.excluded_domains):
+                results["companies_skipped"] += 1
+                continue
 
             # Skip if already searched
             if is_company_searched(db_path, domain):
@@ -108,6 +160,7 @@ async def generate_leads(
                 if lead_id:
                     results["leads_added"] += 1
                     leads_from_company += 1
+                    generated_leads.append(lead)
                     log.info("lead_added", email=lead["email"], company=domain)
 
             # Update company record
@@ -115,5 +168,10 @@ async def generate_leads(
 
             # Small delay between companies
             await asyncio.sleep(0.1)
+
+    # Export leads to xlsx if any were generated
+    if generated_leads and not dry_run:
+        export_file = export_leads_to_xlsx(generated_leads)
+        results["export_file"] = str(export_file) if export_file else None
 
     return results

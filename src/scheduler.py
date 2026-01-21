@@ -101,10 +101,11 @@ async def process_new_lead(
     # Enrich
     enrichment = await enrich_lead(lead_id, db_path)
     posts = enrichment.get("posts", [])
+    profile = enrichment.get("profile", {})
 
     # Generate email 1
     lead_dict = dict(lead)
-    subject, body = await generate_email_1(lead_dict, posts, config_path)
+    subject, body = await generate_email_1(lead_dict, posts, profile, config_path)
 
     # Send
     try:

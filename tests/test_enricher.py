@@ -10,25 +10,39 @@ from src.enricher import enrich_lead, scrape_linkedin_posts
 
 @pytest.mark.asyncio
 async def test_scrape_linkedin_posts_success():
-    mock_response_data = [
-        {
-            "recentPosts": [
-                {"text": "Excited about our new product launch!"},
-                {"text": "Q4 is always organized chaos."},
-            ]
-        }
+    """Test scraping LinkedIn posts with async polling approach."""
+    # Mock responses for the 3-step process:
+    # 1. POST to start run -> returns run_id
+    # 2. GET to poll status -> returns SUCCEEDED with dataset_id
+    # 3. GET dataset items -> returns posts
+
+    # The run response now includes defaultDatasetId immediately
+    run_response_data = {"data": {"id": "run123", "defaultDatasetId": "dataset456"}}
+    status_response_data = {"data": {"status": "SUCCEEDED"}}
+    dataset_items = [
+        {"text": "Excited about our new product launch!"},
+        {"text": "Q4 is always organized chaos."},
     ]
 
     with patch("src.enricher.APIFY_API_KEY", "test-key"):
         with patch("src.enricher.httpx.AsyncClient") as mock_client:
-            # Create a response mock with sync json() method
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status.return_value = None
+            # Create mock responses
+            run_response = MagicMock()
+            run_response.json.return_value = run_response_data
+            run_response.raise_for_status.return_value = None
+
+            status_response = MagicMock()
+            status_response.json.return_value = status_response_data
+            status_response.raise_for_status.return_value = None
+
+            dataset_response = MagicMock()
+            dataset_response.json.return_value = dataset_items
+            dataset_response.raise_for_status.return_value = None
 
             # Create the async client instance mock
             mock_instance = AsyncMock()
-            mock_instance.post.return_value = mock_response
+            mock_instance.post.return_value = run_response
+            mock_instance.get.side_effect = [status_response, dataset_response]
             mock_client.return_value.__aenter__.return_value = mock_instance
 
             posts = await scrape_linkedin_posts("https://linkedin.com/in/test")
@@ -39,16 +53,28 @@ async def test_scrape_linkedin_posts_success():
 
 @pytest.mark.asyncio
 async def test_scrape_linkedin_posts_empty():
-    mock_response_data = [{"recentPosts": []}]
+    """Test scraping when no posts found."""
+    run_response_data = {"data": {"id": "run123", "defaultDatasetId": "dataset456"}}
+    status_response_data = {"data": {"status": "SUCCEEDED"}}
+    dataset_items = []
 
     with patch("src.enricher.APIFY_API_KEY", "test-key"):
         with patch("src.enricher.httpx.AsyncClient") as mock_client:
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_response_data
-            mock_response.raise_for_status.return_value = None
+            run_response = MagicMock()
+            run_response.json.return_value = run_response_data
+            run_response.raise_for_status.return_value = None
+
+            status_response = MagicMock()
+            status_response.json.return_value = status_response_data
+            status_response.raise_for_status.return_value = None
+
+            dataset_response = MagicMock()
+            dataset_response.json.return_value = dataset_items
+            dataset_response.raise_for_status.return_value = None
 
             mock_instance = AsyncMock()
-            mock_instance.post.return_value = mock_response
+            mock_instance.post.return_value = run_response
+            mock_instance.get.side_effect = [status_response, dataset_response]
             mock_client.return_value.__aenter__.return_value = mock_instance
 
             posts = await scrape_linkedin_posts("https://linkedin.com/in/test")
@@ -68,14 +94,18 @@ async def test_enrich_lead_updates_db():
         )
 
         mock_posts = ["Post about marketing", "Another post"]
+        mock_profile = {"fullName": "Test User", "headline": "CEO"}
 
-        with patch("src.enricher.scrape_linkedin_posts", new_callable=AsyncMock) as mock_scrape:
-            mock_scrape.return_value = mock_posts
+        with patch("src.enricher.scrape_linkedin_posts", new_callable=AsyncMock) as mock_posts_scrape:
+            with patch("src.enricher.scrape_linkedin_profile", new_callable=AsyncMock) as mock_profile_scrape:
+                mock_posts_scrape.return_value = mock_posts
+                mock_profile_scrape.return_value = mock_profile
 
-            result = await enrich_lead(lead_id, db_path)
+                result = await enrich_lead(lead_id, db_path)
 
-            assert result["success"] is True
-            assert result["posts"] == mock_posts
+                assert result["success"] is True
+                assert result["posts"] == mock_posts
+                assert result["profile"] == mock_profile
 
-            lead = get_lead_by_id(db_path, lead_id)
-            assert lead["enriched_at"] is not None
+                lead = get_lead_by_id(db_path, lead_id)
+                assert lead["enriched_at"] is not None

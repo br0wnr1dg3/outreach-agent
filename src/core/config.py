@@ -33,6 +33,7 @@ class LeadGenSearchConfig(BaseModel):
     keywords: list[str] = ["collagen supplement"]
     countries: list[str] = ["US"]
     status: str = "ACTIVE"
+    excluded_domains: list[str] = []
 
 
 class LeadGenTargetingConfig(BaseModel):

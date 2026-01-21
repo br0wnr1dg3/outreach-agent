@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -7,17 +7,19 @@ from src.sender import send_new_email, send_reply_email
 
 @pytest.mark.asyncio
 async def test_send_new_email():
-    mock_result = {
-        "data": {
-            "threadId": "thread_123",
-            "id": "msg_456"
-        }
+    # Mock result object with attributes (new SDK style)
+    mock_result = MagicMock()
+    mock_result.successful = True
+    mock_result.data = {
+        "threadId": "thread_123",
+        "id": "msg_456"
     }
+    mock_result.error = None
 
-    with patch("src.sender.ComposioToolSet") as mock_toolset:
-        mock_instance = MagicMock()
-        mock_instance.execute_action.return_value = mock_result
-        mock_toolset.return_value = mock_instance
+    with patch("src.sender._get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.tools.execute.return_value = mock_result
+        mock_get_client.return_value = mock_client
 
         result = await send_new_email(
             to="test@example.com",
@@ -32,17 +34,18 @@ async def test_send_new_email():
 
 @pytest.mark.asyncio
 async def test_send_reply_email():
-    mock_result = {
-        "data": {
-            "threadId": "thread_123",
-            "id": "msg_789"
-        }
+    mock_result = MagicMock()
+    mock_result.successful = True
+    mock_result.data = {
+        "threadId": "thread_123",
+        "id": "msg_789"
     }
+    mock_result.error = None
 
-    with patch("src.sender.ComposioToolSet") as mock_toolset:
-        mock_instance = MagicMock()
-        mock_instance.execute_action.return_value = mock_result
-        mock_toolset.return_value = mock_instance
+    with patch("src.sender._get_client") as mock_get_client:
+        mock_client = MagicMock()
+        mock_client.tools.execute.return_value = mock_result
+        mock_get_client.return_value = mock_client
 
         result = await send_reply_email(
             to="test@example.com",

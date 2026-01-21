@@ -7,7 +7,7 @@ import httpx
 import structlog
 
 SCRAPECREATORS_API_KEY = os.getenv("SCRAPECREATORS_API_KEY", "")
-BASE_URL = "https://api.scrapecreators.com/v1/facebook/adLibrary"
+BASE_URL = "https://api.scrapecreators.com/v1/facebook/adLibrary/search/ads"
 
 log = structlog.get_logger()
 
@@ -53,16 +53,16 @@ async def search_ads(
                 params={
                     "query": keyword,
                     "country": country,
-                    "ad_status": status,
-                    "limit": limit,
+                    "status": status,
+                    "trim": "true",
                 },
                 headers={
-                    "Authorization": f"Bearer {SCRAPECREATORS_API_KEY}",
+                    "x-api-key": SCRAPECREATORS_API_KEY,
                 },
             )
             response.raise_for_status()
             data = response.json()
-            return data.get("data", [])
+            return data.get("searchResults", [])
 
     except Exception as e:
         log.error("scrapecreators_search_error", error=str(e), keyword=keyword)
@@ -85,7 +85,12 @@ async def get_advertiser_domains(
     results: list[dict] = []
 
     for ad in ads:
+        # link_url can be at root level or in snapshot
         link_url = ad.get("link_url") or ""
+        if not link_url:
+            snapshot = ad.get("snapshot", {})
+            link_url = snapshot.get("link_url") or ""
+
         domain = extract_domain(link_url)
 
         if not domain or domain in seen_domains:
