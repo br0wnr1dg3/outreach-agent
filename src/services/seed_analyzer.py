@@ -9,7 +9,7 @@ import anthropic
 import httpx
 import structlog
 
-from src.mcp_servers.web_server import html_to_markdown
+from src.discovery.mcp_tools import html_to_markdown
 
 log = structlog.get_logger()
 

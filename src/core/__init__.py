@@ -6,10 +6,12 @@ from src.core.config import (
     SendingConfig,
     GmailConfig,
     LeadGenConfig,
+    EmailTemplate,
     load_settings,
     load_template,
     render_template,
     load_lead_gen_config,
+    load_templates,
 )
 from src.core.db import (
     init_db,

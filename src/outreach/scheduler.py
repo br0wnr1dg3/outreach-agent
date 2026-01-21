@@ -9,8 +9,8 @@ from typing import Optional
 
 import structlog
 
-from src.config import DEFAULT_CONFIG_PATH, Settings, load_settings, load_template, render_template
-from src.db import (
+from src.core.config import DEFAULT_CONFIG_PATH, Settings, load_settings, load_template, render_template
+from src.core.db import (
     DEFAULT_DB_PATH,
     get_leads_by_status,
     get_leads_due_for_followup,
@@ -19,9 +19,9 @@ from src.db import (
     update_lead_email_sent,
     count_sent_today,
 )
-from src.enricher import enrich_lead
-from src.composer import generate_email_1
-from src.sender import send_new_email, send_reply_email, check_for_reply
+from src.outreach.enricher import enrich_lead
+from src.outreach.composer import generate_email_1
+from src.outreach.sender import send_new_email, send_reply_email, check_for_reply
 
 log = structlog.get_logger()
 

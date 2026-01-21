@@ -9,7 +9,7 @@ from typing import Optional
 import httpx
 import structlog
 
-from src.db import DEFAULT_DB_PATH, get_lead_by_id, update_lead_enrichment
+from src.core.db import DEFAULT_DB_PATH, get_lead_by_id, update_lead_enrichment
 
 log = structlog.get_logger()
 

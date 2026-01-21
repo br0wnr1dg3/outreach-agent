@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import structlog
-from src.agents.discovery_agent import DiscoveryAgent
+from src.discovery.agent import DiscoveryAgent
 from src.services.slack_notifier import SlackNotifier
 
 log = structlog.get_logger()

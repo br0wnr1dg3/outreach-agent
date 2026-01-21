@@ -8,7 +8,7 @@ from typing import Optional
 import anthropic
 import structlog
 
-from src.config import DEFAULT_CONFIG_PATH, load_template, render_template
+from src.core.config import DEFAULT_CONFIG_PATH, load_template, render_template
 
 log = structlog.get_logger()
 

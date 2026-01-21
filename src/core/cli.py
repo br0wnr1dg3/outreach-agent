@@ -9,11 +9,11 @@ from typing import Optional
 import click
 import structlog
 
-from src.db import DEFAULT_DB_PATH, init_db, get_pipeline_stats, get_lead_by_email
-from src.config import DEFAULT_CONFIG_PATH, load_settings
-from src.importer import import_leads
-from src.scheduler import run_send_cycle
-from src.lead_generator import generate_leads
+from src.core.db import DEFAULT_DB_PATH, init_db, get_pipeline_stats, get_lead_by_email
+from src.core.config import DEFAULT_CONFIG_PATH, load_settings
+from src.outreach.importer import import_leads
+from src.outreach.scheduler import run_send_cycle
+from src.discovery.lead_generator import generate_leads
 
 # Configure structlog for CLI output
 structlog.configure(
@@ -235,7 +235,7 @@ def generate(db_path: str, config_path: str, dry_run: bool, keyword: str):
 @click.option('--dry-run', is_flag=True, help='Preview without writing to DB')
 def agent(target: int, dry_run: bool):
     """Run the discovery agent to find and qualify leads."""
-    from src.agents.discovery_agent import DiscoveryAgent
+    from src.discovery.agent import DiscoveryAgent
 
     click.echo(f"Starting discovery agent (target: {target} companies)")
     if dry_run:

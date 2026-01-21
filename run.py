@@ -5,7 +5,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from src.cli import main
+from src.core.cli import main
 
 if __name__ == "__main__":
     main()

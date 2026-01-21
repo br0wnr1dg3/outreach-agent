@@ -7,14 +7,14 @@ from pathlib import Path
 import openpyxl
 import structlog
 
-from src.config import load_lead_gen_config, DEFAULT_CONFIG_PATH
-from src.db import (
+from src.core.config import load_lead_gen_config, DEFAULT_CONFIG_PATH
+from src.core.db import (
     DEFAULT_DB_PATH, insert_lead, is_company_searched,
     insert_searched_company, update_company_leads_found,
     count_leads_generated_today
 )
-from src.fb_ads import get_advertiser_domains
-from src.apollo import find_leads_at_company
+from src.clients.fb_ads import get_advertiser_domains
+from src.clients.apollo import find_leads_at_company
 
 log = structlog.get_logger()
 

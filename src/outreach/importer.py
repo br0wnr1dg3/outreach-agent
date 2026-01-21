@@ -5,7 +5,7 @@ from pathlib import Path
 import structlog
 from openpyxl import Workbook, load_workbook
 
-from src.db import DEFAULT_DB_PATH, insert_lead
+from src.core.db import DEFAULT_DB_PATH, insert_lead
 
 log = structlog.get_logger()
 

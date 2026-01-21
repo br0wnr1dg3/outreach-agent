@@ -12,11 +12,13 @@ from typing import AsyncIterator, Optional
 from claude_agent_sdk import query, ClaudeAgentOptions
 import structlog
 
-from src.supabase_client import SupabaseClient
-from src.mcp_servers.fb_ads_server import create_fb_ads_mcp_server
-from src.mcp_servers.apollo_server import create_apollo_mcp_server
-from src.mcp_servers.supabase_server import create_supabase_mcp_server
-from src.mcp_servers.web_server import create_web_mcp_server
+from src.clients.supabase import SupabaseClient
+from src.discovery.mcp_tools import (
+    create_apollo_mcp_server,
+    create_fb_ads_mcp_server,
+    create_supabase_mcp_server,
+    create_web_mcp_server,
+)
 
 log = structlog.get_logger()
 
