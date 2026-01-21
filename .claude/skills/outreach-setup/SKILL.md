@@ -426,7 +426,143 @@ Use AskUserQuestion:
 
 ---
 
-## Step 10: Completion
+## Step 10: Test Email Generation
+
+Test email generation using one of the sample leads (or a mock lead if no leads were generated).
+
+**Get a lead to test with:**
+
+If leads were generated in Step 9, use the first one. Otherwise, create a mock lead:
+
+```python
+test_lead = {
+    "email": "test@example.com",
+    "first_name": "Sarah",
+    "last_name": "Chen",
+    "company": "Acme DTC",
+    "title": "VP Marketing",
+    "linkedin_url": "https://linkedin.com/in/sarahchen"
+}
+```
+
+**Run enrichment and email generation:**
+
+```bash
+uv run python -c "
+import asyncio
+from src.outreach.enricher import scrape_linkedin_profile, scrape_linkedin_posts
+from src.outreach.composer import generate_email_1
+from src.core.config import get_template_by_name, render_template, DEFAULT_CONFIG_PATH
+
+async def test():
+    # Test lead
+    lead = {
+        'email': 'sarah@acmedtc.com',
+        'first_name': 'Sarah',
+        'last_name': 'Chen',
+        'company': 'Acme DTC',
+        'title': 'VP Marketing',
+        'linkedin_url': 'https://linkedin.com/in/sarahchen'
+    }
+
+    # Scrape LinkedIn
+    print('Scraping LinkedIn profile...')
+    profile = await scrape_linkedin_profile(lead['linkedin_url'])
+    posts = await scrape_linkedin_posts(lead['linkedin_url'])
+
+    print(f'Found {len(posts)} recent posts')
+
+    # Generate email 1
+    print('Generating email 1...')
+    subject, body = await generate_email_1(lead, posts, profile)
+
+    print('---EMAIL 1---')
+    print(f'Subject: {subject}')
+    print(body)
+    print('---END---')
+
+    # Generate followups from templates
+    email_1_template = get_template_by_name(DEFAULT_CONFIG_PATH, 'email_1')
+    followup_1 = get_template_by_name(DEFAULT_CONFIG_PATH, 'followup_1')
+    followup_2 = get_template_by_name(DEFAULT_CONFIG_PATH, 'followup_2')
+
+    vars = {
+        'first_name': lead['first_name'],
+        'original_subject': subject
+    }
+
+    print('---FOLLOWUP 1 (3 days later)---')
+    print(f'Subject: {render_template(followup_1.subject, vars)}')
+    print(render_template(followup_1.body, vars))
+    print('---END---')
+
+    print('---FOLLOWUP 2 (7 days later)---')
+    print(f'Subject: {render_template(followup_2.subject, vars)}')
+    print(render_template(followup_2.body, vars))
+    print('---END---')
+
+asyncio.run(test())
+"
+```
+
+Display the output to the user in a formatted way:
+
+```
+## Sample Email Sequence for Sarah Chen
+
+**Email 1** (sends immediately)
+Subject: your linkedin is suspiciously clean
+
+Hey Sarah,
+
+Scrolled your whole profile looking for something clever to reference
+and you've given me nothing. No hot takes, no humble brags. I respect
+the mystery.
+
+Anyway, terrible jokes aside...
+
+[Rest of email]
+
+---
+
+**Followup 1** (3 days later, no reply)
+Subject: re: your linkedin is suspiciously clean
+
+Hey Sarah,
+
+Following up on my own cold email. The audacity.
+
+[Rest of followup]
+
+---
+
+**Followup 2** (7 days later, no reply)
+Subject: re: your linkedin is suspiciously clean
+
+Hey Sarah,
+
+Last one, I promise...
+
+[Rest of followup]
+```
+
+Ask: "Does this email feel right for your brand?"
+
+Use AskUserQuestion:
+- "Yes, looks good" - Continue
+- "No, needs adjustment" - Ask what's wrong
+
+**If needs adjustment:**
+- Ask: "What's off? (tone too casual? pitch unclear? CTA weak?)"
+- Based on feedback, update the appropriate file:
+  - Tone issues → update `config/context.md`
+  - Template wording → update `config/templates.md`
+- Re-run the email generation test
+- Repeat until confirmed
+
+---
+
+## Step 11: Completion
 
 ```
 # Setup Complete!
