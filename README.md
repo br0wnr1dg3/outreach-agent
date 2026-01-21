@@ -1,108 +1,51 @@
 # Outreach Boilerplate
 
-Humor-first cold email outreach CLI. Clone, configure, drop leads, run.
+Humor-first cold email outreach. Clone, configure with Claude, run.
+
+## Quick Start
+
+1. Clone and install:
+   ```bash
+   git clone <repo-url>
+   cd outreach-boilerplate
+   uv sync
+   ```
+
+2. Start Claude Code:
+   ```bash
+   claude --dangerously-skip-permissions
+   ```
+
+3. Run the setup wizard:
+   ```
+   /outreach-setup
+   ```
+
+This walks you through:
+- Adding your seed customers (so the agent knows who to find)
+- Configuring your company context and email templates
+- Setting up API keys
+- Testing lead generation
+- Testing email generation
+- Setting up weekday automation
+
+## Manual Setup
+
+Prefer to configure things yourself? See [SETUP.md](SETUP.md).
 
 ---
 
-## Running a Campaign
+## What This Does
 
-### Step 1: Drop your lead list into `/leads`
+**Two pipelines:**
 
-Save your Excel file to the `leads/` folder. Format:
+1. **Outreach** - Import leads, scrape LinkedIn for personalization, generate joke openers with Claude, send via Gmail, automate follow-ups
 
-| email | first_name | last_name | company | title | linkedin_url |
-|-------|------------|-----------|---------|-------|--------------|
-| sarah@brand.com | Sarah | Chen | Brand Co | Marketing Director | https://linkedin.com/in/sarahchen |
+2. **Discovery** - Find new leads by searching Facebook Ad Library for advertisers similar to your seed customers, then enrich via Apollo.io
 
-### Step 2: Run
+## How Emails Work
 
-```bash
-python run.py
-```
-
-That's it. This will:
-- Import any Excel files from `/leads`
-- Move them to `/leads/processed`
-- Scrape LinkedIn for personalization
-- Generate joke openers with Claude
-- Send emails via Gmail
-- Schedule follow-ups
-
-### Step 3: Run again tomorrow
-
-```bash
-python run.py
-```
-
-Each run:
-- Checks for replies (stops sequences for responders)
-- Sends scheduled follow-ups
-- Imports any new lead files you've added
-
-### Check status anytime
-
-```bash
-python run.py status
-```
-
----
-
-## One-Time Setup
-
-### 1. Clone and Install
-
-```bash
-git clone https://github.com/yourusername/outreach-boilerplate
-cd outreach-boilerplate
-uv sync
-```
-
-### 2. Add API Keys
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-- `ANTHROPIC_API_KEY` - [console.anthropic.com](https://console.anthropic.com/)
-- `COMPOSIO_API_KEY` - [composio.dev](https://composio.dev/)
-- `APIFY_API_KEY` - [apify.com](https://apify.com/)
-
-### 3. Connect Gmail
-
-1. Go to [composio.dev](https://composio.dev) dashboard
-2. Connect your Gmail account
-3. Copy the connected account ID
-4. Paste in `config/settings.yaml` under `gmail.connected_account_id`
-
-### 4. Edit Your Messaging
-
-| File | What it does |
-|------|--------------|
-| `config/context.md` | Who you are, your offer, tone |
-| `config/email_1.md` | First email (Claude fills the joke) |
-| `config/followup_1.md` | Email 2 (3 days later) |
-| `config/followup_2.md` | Email 3 (7 days later) |
-| `config/settings.yaml` | Timing, limits, Gmail account |
-
-### 5. Automate (Optional)
-
-Run hourly via cron:
-
-```bash
-crontab -e
-```
-
-Add:
-```
-0 * * * * cd /path/to/outreach-boilerplate && uv run python run.py >> /tmp/outreach.log 2>&1
-```
-
----
-
-## How the Emails Work
-
-**Email 1** - Claude reads their LinkedIn and writes a personalized joke opener:
+**Email 1** - Claude writes a personalized joke opener based on their LinkedIn:
 
 ```
 subject: your linkedin is suspiciously clean
@@ -133,7 +76,15 @@ Following up on my own cold email. The audacity.
 ## Requirements
 
 - Python 3.11+
-- API keys: Anthropic, Composio, Apify
+- [uv](https://github.com/astral-sh/uv) package manager
+- Claude Code CLI
+
+**API keys needed:**
+- Anthropic (email generation)
+- Composio (Gmail integration)
+- Apify (LinkedIn scraping)
+- Apollo.io (lead discovery - optional)
+- ScrapeCreators (FB Ad Library - optional)
 
 ## License
 
