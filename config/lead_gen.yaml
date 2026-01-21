@@ -1,20 +1,45 @@
+# config/lead_gen.yaml
 search:
   keywords:
-    - "collagen supplement"
-    - "beauty supplement"
+    # Keyword: weight (0.0-1.0, higher = prioritize)
+    "collagen supplement": 0.8
+    "beauty supplement": 0.7
+    "wellness subscription": 0.6
+    "anti-aging skincare": 0.5
   countries: ["US", "GB", "AU"]
   status: "ACTIVE"
+  excluded_domains:
+    - amazon.com
+    - facebook.com
+    - meta.com
+    - instagram.com
+    - google.com
+    - youtube.com
+    - tiktok.com
+    - pinterest.com
+    - twitter.com
+    - linkedin.com
+    - walmart.com
+    - target.com
+    - ebay.com
+    - etsy.com
+    - shopify.com
 
 targeting:
-  job_titles:
-    - "Founder"
-    - "CEO"
-    - "Co-Founder"
-    - "Head of Marketing"
-    - "Marketing Director"
-    - "CMO"
-    - "VP Marketing"
+  title_priority:
+    - CMO
+    - VP Marketing
+    - Head of Marketing
+    - Marketing Director
+    - Founder
+    - CEO
+    - COO
+  max_contacts_per_company: 1
 
 quotas:
-  leads_per_day: 20
-  max_companies_to_check: 50
+  companies_per_day: 10
+  max_searches_per_run: 50
+
+slack:
+  webhook_url: ${SLACK_WEBHOOK_URL}
+  channel: "#outreach-alerts"
