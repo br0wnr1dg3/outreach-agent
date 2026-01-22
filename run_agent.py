@@ -15,6 +15,7 @@ load_dotenv()
 
 import structlog
 from src.discovery.agent import DiscoveryAgent
+from src.core.db import DEFAULT_DB_PATH, get_daily_stats
 from src.services.slack_notifier import SlackNotifier
 
 log = structlog.get_logger()
@@ -43,8 +44,8 @@ async def main():
                 result = message.result
                 log.info("agent_progress", result=result[:200] if isinstance(result, str) else result)
 
-        # Get final stats from Supabase
-        stats = agent.supabase.get_daily_stats()
+        # Get final stats from SQLite
+        stats = get_daily_stats(DEFAULT_DB_PATH)
         companies_found = stats.get("companies_checked_today", 0)
         leads_added = stats.get("leads_generated_today", 0)
 

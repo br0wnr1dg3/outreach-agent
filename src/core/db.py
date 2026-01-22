@@ -73,6 +73,10 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
             company_name TEXT,
             source_keyword TEXT,
             fb_page_id TEXT,
+            passed_gate_1 INTEGER,
+            passed_gate_2 INTEGER,
+            fit_score INTEGER,
+            fit_notes TEXT,
             leads_found INTEGER DEFAULT 0,
             searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -114,19 +118,27 @@ def insert_lead(
 def insert_searched_company(
     db_path: Path,
     domain: str,
-    company_name: Optional[str],
-    source_keyword: Optional[str],
-    fb_page_id: Optional[str],
+    company_name: Optional[str] = None,
+    source_keyword: Optional[str] = None,
+    fb_page_id: Optional[str] = None,
+    passed_gate_1: Optional[bool] = None,
+    passed_gate_2: Optional[bool] = None,
+    fit_score: Optional[int] = None,
+    fit_notes: Optional[str] = None,
 ) -> bool:
     """Insert a searched company. Returns True if inserted, False if duplicate."""
     conn = get_connection(db_path)
     try:
         conn.execute(
             """
-            INSERT INTO searched_companies (domain, company_name, source_keyword, fb_page_id)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO searched_companies
+            (domain, company_name, source_keyword, fb_page_id, passed_gate_1, passed_gate_2, fit_score, fit_notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (domain, company_name, source_keyword, fb_page_id)
+            (domain, company_name, source_keyword, fb_page_id,
+             1 if passed_gate_1 else (0 if passed_gate_1 is False else None),
+             1 if passed_gate_2 else (0 if passed_gate_2 is False else None),
+             fit_score, fit_notes)
         )
         conn.commit()
         return True
@@ -134,6 +146,38 @@ def insert_searched_company(
         return False
     finally:
         conn.close()
+
+
+def count_companies_searched_today(db_path: Path) -> int:
+    """Count companies searched today."""
+    conn = get_connection(db_path)
+    today = datetime.utcnow().date().isoformat()
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM searched_companies WHERE date(searched_at) = ?",
+        (today,)
+    )
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def get_quota_status(db_path: Path, daily_target: int = 10) -> dict:
+    """Get quota status for today."""
+    leads_today = count_leads_generated_today(db_path)
+    return {
+        "leads_today": leads_today,
+        "target": daily_target,
+        "remaining": max(0, daily_target - leads_today),
+        "quota_met": leads_today >= daily_target,
+    }
+
+
+def get_daily_stats(db_path: Path) -> dict:
+    """Get daily statistics."""
+    return {
+        "leads_generated_today": count_leads_generated_today(db_path),
+        "companies_checked_today": count_companies_searched_today(db_path),
+    }
 
 
 def is_company_searched(db_path: Path, domain: str) -> bool:

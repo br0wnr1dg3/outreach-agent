@@ -12,11 +12,11 @@ from typing import AsyncIterator, Optional
 from claude_agent_sdk import query, ClaudeAgentOptions
 import structlog
 
-from src.clients.supabase import SupabaseClient
+from src.core.db import DEFAULT_DB_PATH, init_db, get_daily_stats
 from src.discovery.mcp_tools import (
     create_apollo_mcp_server,
     create_fb_ads_mcp_server,
-    create_supabase_mcp_server,
+    create_sqlite_mcp_server,
     create_web_mcp_server,
 )
 
@@ -35,13 +35,12 @@ class DiscoveryAgent:
     Uses Claude Agent SDK with MCP servers for:
     - FB Ads: Search for companies by keyword
     - Apollo: Check contacts and enrich leads
-    - Supabase: Track companies and store leads
+    - SQLite: Track companies and store leads (local database)
     - Web: Fetch company websites for ICP analysis
     """
 
     def __init__(
         self,
-        supabase_client: Optional[SupabaseClient] = None,
         seed_profiles_dir: Path = SEED_PROFILES_DIR,
         search_journal_path: Path = SEARCH_JOURNAL_PATH,
         lead_gen_config_path: Path = LEAD_GEN_CONFIG_PATH,
@@ -49,21 +48,22 @@ class DiscoveryAgent:
         """Initialize the discovery agent.
 
         Args:
-            supabase_client: Supabase client (creates default if not provided)
             seed_profiles_dir: Directory containing seed profile .md files
             search_journal_path: Path to search journal markdown file
             lead_gen_config_path: Path to lead_gen.yaml config
         """
-        self.supabase = supabase_client or SupabaseClient()
         self.seed_profiles_dir = seed_profiles_dir
         self.search_journal_path = search_journal_path
         self.lead_gen_config_path = lead_gen_config_path
+
+        # Ensure database exists
+        init_db(DEFAULT_DB_PATH)
 
         # Create MCP servers
         self.mcp_servers = {
             "fb_ads": create_fb_ads_mcp_server(),
             "apollo": create_apollo_mcp_server(),
-            "supabase": create_supabase_mcp_server(supabase_client=self.supabase),
+            "sqlite": create_sqlite_mcp_server(),
             "web": create_web_mcp_server(),
         }
 
@@ -108,7 +108,7 @@ You have access to these MCP tools:
 - check_company_contacts: Quick check if decision-makers exist (Gate 1)
 - find_leads: Full enrichment to get email addresses
 
-### Supabase (mcp__supabase__)
+### SQLite (mcp__sqlite__)
 - check_company_searched: Check if we already processed a domain
 - mark_company_searched: Record company with gate results
 - insert_lead: Add new lead to database
@@ -192,7 +192,7 @@ Begin by checking your current quota status, then start searching."""
                 allowed_tools=[
                     "mcp__fb_ads__*",
                     "mcp__apollo__*",
-                    "mcp__supabase__*",
+                    "mcp__sqlite__*",
                     "mcp__web__*",
                 ],
                 disallowed_tools=[

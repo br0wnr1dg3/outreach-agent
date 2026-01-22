@@ -18,6 +18,15 @@ import structlog
 
 from src.clients import apollo, fb_ads
 from src.clients.supabase import SupabaseClient
+from src.core.db import (
+    DEFAULT_DB_PATH,
+    init_db,
+    is_company_searched,
+    insert_searched_company,
+    insert_lead,
+    get_daily_stats,
+    get_quota_status,
+)
 
 log = structlog.get_logger()
 
@@ -507,6 +516,195 @@ def create_supabase_mcp_server(
     ]
 
     return create_sdk_mcp_server(name="supabase", version="1.0.0", tools=tools)
+
+
+# SQLite handlers for testing
+_sqlite_handlers: dict[str, Any] = {}
+
+
+def get_sqlite_handlers() -> dict[str, Any]:
+    """Get SQLite tool handlers for testing."""
+    return _sqlite_handlers
+
+
+def create_sqlite_mcp_server() -> McpSdkServerConfig:
+    """Create MCP server with SQLite tools (local alternative to Supabase)."""
+    global _sqlite_handlers
+
+    # Ensure database exists
+    init_db(DEFAULT_DB_PATH)
+
+    async def check_company_searched_handler(args: dict[str, Any]) -> dict[str, Any]:
+        """Check if a company domain has already been searched."""
+        domain = args.get("domain")
+        if not domain:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": "domain is required"})}],
+                "isError": True,
+            }
+        try:
+            searched = is_company_searched(DEFAULT_DB_PATH, domain)
+            result = {"domain": domain, "already_searched": searched}
+            return {"content": [{"type": "text", "text": json.dumps(result)}]}
+        except Exception as e:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+                "isError": True,
+            }
+
+    async def mark_company_searched_handler(args: dict[str, Any]) -> dict[str, Any]:
+        """Mark a company as searched with gate results."""
+        domain = args.get("domain")
+        if not domain:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": "domain is required"})}],
+                "isError": True,
+            }
+        try:
+            insert_searched_company(
+                db_path=DEFAULT_DB_PATH,
+                domain=domain,
+                company_name=args.get("company_name"),
+                source_keyword=args.get("source_keyword"),
+                passed_gate_1=args.get("passed_gate_1"),
+                passed_gate_2=args.get("passed_gate_2"),
+                fit_score=args.get("fit_score"),
+                fit_notes=args.get("fit_notes"),
+            )
+            result = {"success": True, "domain": domain}
+            return {"content": [{"type": "text", "text": json.dumps(result)}]}
+        except Exception as e:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+                "isError": True,
+            }
+
+    async def insert_lead_handler(args: dict[str, Any]) -> dict[str, Any]:
+        """Insert a new lead into the database."""
+        email = args.get("email")
+        first_name = args.get("first_name")
+        if not email or not first_name:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": "email and first_name are required"})}],
+                "isError": True,
+            }
+        try:
+            lead_id = insert_lead(
+                db_path=DEFAULT_DB_PATH,
+                email=email,
+                first_name=first_name,
+                last_name=args.get("last_name"),
+                company=args.get("company"),
+                title=args.get("title"),
+                linkedin_url=args.get("linkedin_url"),
+            )
+            if lead_id:
+                result = {"success": True, "lead_id": lead_id, "email": email}
+            else:
+                result = {"success": False, "reason": "duplicate", "email": email}
+            return {"content": [{"type": "text", "text": json.dumps(result)}]}
+        except Exception as e:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+                "isError": True,
+            }
+
+    async def get_daily_stats_handler(args: dict[str, Any]) -> dict[str, Any]:
+        """Get today's statistics."""
+        try:
+            stats = get_daily_stats(DEFAULT_DB_PATH)
+            return {"content": [{"type": "text", "text": json.dumps(stats)}]}
+        except Exception as e:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+                "isError": True,
+            }
+
+    async def get_quota_status_handler(args: dict[str, Any]) -> dict[str, Any]:
+        """Check if daily quota is met."""
+        daily_target = args.get("daily_target", 10)
+        try:
+            status = get_quota_status(DEFAULT_DB_PATH, daily_target)
+            return {"content": [{"type": "text", "text": json.dumps(status)}]}
+        except Exception as e:
+            return {
+                "content": [{"type": "text", "text": json.dumps({"error": str(e)})}],
+                "isError": True,
+            }
+
+    _sqlite_handlers = {
+        "check_company_searched": check_company_searched_handler,
+        "mark_company_searched": mark_company_searched_handler,
+        "insert_lead": insert_lead_handler,
+        "get_daily_stats": get_daily_stats_handler,
+        "get_quota_status": get_quota_status_handler,
+    }
+
+    tools = [
+        SdkMcpTool(
+            name="check_company_searched",
+            description="Check if a company domain has already been searched",
+            input_schema={
+                "type": "object",
+                "properties": {"domain": {"type": "string", "description": "Company domain to check"}},
+                "required": ["domain"],
+            },
+            handler=check_company_searched_handler,
+        ),
+        SdkMcpTool(
+            name="mark_company_searched",
+            description="Mark a company as searched with gate results and fit notes",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "domain": {"type": "string", "description": "Company domain"},
+                    "company_name": {"type": "string", "description": "Company name"},
+                    "source_keyword": {"type": "string", "description": "Search keyword that found this company"},
+                    "passed_gate_1": {"type": "boolean", "description": "Whether company passed Gate 1"},
+                    "passed_gate_2": {"type": "boolean", "description": "Whether company passed Gate 2"},
+                    "fit_score": {"type": "integer", "description": "ICP fit score 1-10"},
+                    "fit_notes": {"type": "string", "description": "Notes about why company does/doesn't fit ICP"},
+                },
+                "required": ["domain"],
+            },
+            handler=mark_company_searched_handler,
+        ),
+        SdkMcpTool(
+            name="insert_lead",
+            description="Insert a new lead into the database",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "email": {"type": "string", "description": "Lead email address"},
+                    "first_name": {"type": "string", "description": "First name"},
+                    "last_name": {"type": "string", "description": "Last name"},
+                    "company": {"type": "string", "description": "Company name"},
+                    "title": {"type": "string", "description": "Job title"},
+                    "linkedin_url": {"type": "string", "description": "LinkedIn profile URL"},
+                },
+                "required": ["email", "first_name"],
+            },
+            handler=insert_lead_handler,
+        ),
+        SdkMcpTool(
+            name="get_daily_stats",
+            description="Get today's lead generation statistics",
+            input_schema={"type": "object", "properties": {}, "required": []},
+            handler=get_daily_stats_handler,
+        ),
+        SdkMcpTool(
+            name="get_quota_status",
+            description="Check if daily quota is met and how many leads remaining",
+            input_schema={
+                "type": "object",
+                "properties": {"daily_target": {"type": "integer", "description": "Daily target (default: 10)", "default": 10}},
+                "required": [],
+            },
+            handler=get_quota_status_handler,
+        ),
+    ]
+
+    return create_sdk_mcp_server(name="sqlite", version="1.0.0", tools=tools)
 
 
 def create_web_mcp_server() -> McpSdkServerConfig:
