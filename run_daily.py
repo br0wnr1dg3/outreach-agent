@@ -5,8 +5,13 @@ Both pipelines now use SQLite (data/outreach.db) so no sync needed.
 """
 
 import asyncio
+import os
 from datetime import datetime
 from dotenv import load_dotenv
+
+# Fix for Claude Agent SDK stream timeout issue - prevents MCP server disconnects
+# during long-running concurrent tool calls (default is 60s, we use 5 minutes)
+os.environ.setdefault("CLAUDE_CODE_STREAM_CLOSE_TIMEOUT", "300000")
 
 load_dotenv()
 

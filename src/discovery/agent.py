@@ -119,16 +119,16 @@ You have access to these MCP tools:
 
 ## Workflow
 
-1. Check quota status - if met, stop
-2. Pick a search keyword (prioritize higher-weighted ones)
-3. Search FB Ads for companies
-4. For each company:
+1. Pick a search keyword (prioritize higher-weighted ones)
+2. Search FB Ads for companies
+3. For each company:
    a. Skip if already searched (check_company_searched)
    b. Gate 1: Check if contacts exist (check_company_contacts)
    c. Gate 2: Fetch website, analyze against seed profiles for ICP fit
    d. If passes both gates: find_leads and insert_lead
    e. Mark company as searched with results
-5. Continue until quota met or searches exhausted
+4. Track leads found THIS RUN (not from database) - stop when you hit {daily_target}
+5. Continue with new keywords until target met or all keywords exhausted
 
 ## Contact Priority (Marketing First)
 1. CMO
@@ -175,11 +175,11 @@ You have access to these MCP tools:
         """
         system_prompt = self._build_system_prompt(daily_target)
 
-        user_prompt = f"""Start discovering leads. Target: {daily_target} companies.
+        user_prompt = f"""Start discovering leads. Target: {daily_target} new leads THIS RUN.
 
 {"DRY RUN MODE: Do not actually insert leads or mark companies as searched." if dry_run else ""}
 
-Begin by checking your current quota status, then start searching."""
+Track how many leads you successfully insert during this run. Stop when you reach {daily_target} or exhaust all keywords. Begin searching now."""
 
         log.info("discovery_agent_starting", daily_target=daily_target, dry_run=dry_run)
 
@@ -197,6 +197,7 @@ Begin by checking your current quota status, then start searching."""
                 cwd=os.environ.get("PROJECT_DIR", os.getcwd()),
                 permission_mode="acceptEdits",
                 system_prompt=system_prompt,
+                max_turns=200,  # Allow enough turns to process many companies
                 allowed_tools=[
                     "mcp__fb_ads__*",
                     "mcp__apollo__*",
