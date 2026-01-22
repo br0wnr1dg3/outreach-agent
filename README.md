@@ -2,6 +2,8 @@
 
 Humor-first cold email outreach. Clone, configure with Claude, run.
 
+Designed to work for companies selling to anyone that would be advertising on Facebook (raw lead gen comes from Facebook Ad Library)
+
 ## Quick Start
 
 1. Clone and install:
@@ -32,6 +34,11 @@ This walks you through:
 ## Manual Setup
 
 Prefer to configure things yourself? See [SETUP.md](SETUP.md).
+
+## Stopping Automation
+```
+launchctl unload ~/Library/LaunchAgents/com.outreach.daily.plist
+```
 
 ---
 

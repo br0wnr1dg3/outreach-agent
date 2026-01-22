@@ -1,5 +1,5 @@
 ## Company
-Cheerful - creator affiliate platform that onboards creators and affiliates and drives content creation for brands on autopilot.
+Cheerful - creator gifting platform that onboards creators and affiliates and drives content creation for brands on autopilot.
 
 ## Value Prop
 Help DTC brands turn creators & affiliates into content machines for paid media without the usual chaos via gifting at scale.
