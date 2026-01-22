@@ -183,8 +183,16 @@ Begin by checking your current quota status, then start searching."""
 
         log.info("discovery_agent_starting", daily_target=daily_target, dry_run=dry_run)
 
+        # Use streaming mode (async generator) to enable SDK MCP server communication.
+        # String prompts close stdin immediately, preventing MCP control protocol responses.
+        async def stream_prompt():
+            yield {
+                "type": "user",
+                "message": {"role": "user", "content": user_prompt},
+            }
+
         async for message in query(
-            prompt=user_prompt,
+            prompt=stream_prompt(),
             options=ClaudeAgentOptions(
                 cwd=os.environ.get("PROJECT_DIR", os.getcwd()),
                 permission_mode="acceptEdits",
