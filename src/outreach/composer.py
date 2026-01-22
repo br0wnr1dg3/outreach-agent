@@ -66,6 +66,7 @@ The reference proves you read their stuff. The punchline should surprise or deli
 - Political humor (elections, politicians, government, DOGE, etc.)
 - Jokes about appearance or personal life
 - Generic humor that could apply to anyone
+- Absolutely NO em-dashes (—)
 
 The target is always: the situation, the industry, yourself, or a playful observation about what they said. Never them personally.
 
