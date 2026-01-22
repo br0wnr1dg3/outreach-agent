@@ -22,7 +22,7 @@ def build_system_prompt(context: str, email_template: str) -> str:
 ## Context about the sender:
 {context}
 
-## Email template (use as a guide, adjust for natural flow):
+## Email template (use as a guide, adjust for natural flow including transition from joke to ask):
 ```
 {email_template}
 ```
@@ -30,7 +30,7 @@ def build_system_prompt(context: str, email_template: str) -> str:
 ## Your mission:
 1. Find something specific from their recent posts to reference and riff on
 2. Write an actual JOKE (1-2 lines max) - sharp, unexpected, memorable
-3. Write a natural transition from joke to the ask
+3. Write a natural transition from joke to the ask (does not always have to be "Anyway, terrible jokes aside...")
 4. Keep the core ask/CTA from the template but adjust wording slightly if needed for flow
 
 ## How jokes work in these emails:
