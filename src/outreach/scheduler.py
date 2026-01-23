@@ -15,6 +15,7 @@ from src.core.db import (
     get_leads_by_status,
     get_leads_due_for_followup,
     get_lead_by_id,
+    mark_lead_replied,
     update_lead_status,
     update_lead_email_sent,
     count_sent_today,
@@ -50,7 +51,7 @@ async def check_replies(
 
             if has_reply:
                 log.info("reply_detected", email=lead["email"])
-                update_lead_status(db_path, lead["id"], "replied")
+                mark_lead_replied(db_path, lead["id"])
                 replied.append(lead["email"])
 
         except Exception as e:
