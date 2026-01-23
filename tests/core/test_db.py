@@ -7,7 +7,7 @@ from src.core.db import (
     update_lead_status, count_sent_today,
     insert_searched_company, is_company_searched,
     update_company_leads_found, count_leads_generated_today,
-    mark_lead_replied
+    mark_lead_replied, get_weekly_stats
 )
 
 
@@ -211,3 +211,32 @@ def test_mark_lead_replied_sets_status_and_timestamp():
         lead = get_lead_by_email(db_path, "reply@test.com")
         assert lead["status"] == "replied"
         assert lead["replied_at"] is not None
+
+
+def test_get_weekly_stats_returns_correct_counts():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        # Add leads (all created "today" which is within the week)
+        insert_lead(db_path, "lead1@test.com", "One", None, None, None, None)
+        insert_lead(db_path, "lead2@test.com", "Two", None, None, None, None)
+        insert_lead(db_path, "lead3@test.com", "Three", None, None, None, None)
+
+        # Simulate one contacted (current_step >= 1 AND last_sent_at this week)
+        conn = get_connection(db_path)
+        conn.execute(
+            "UPDATE leads SET current_step = 1, last_sent_at = CURRENT_TIMESTAMP WHERE email = ?",
+            ("lead1@test.com",)
+        )
+        conn.commit()
+        conn.close()
+
+        # Simulate one replied
+        mark_lead_replied(db_path, 2)  # lead2
+
+        stats = get_weekly_stats(db_path)
+
+        assert stats["leads_found"] == 3
+        assert stats["leads_contacted"] == 1
+        assert stats["leads_replied"] == 1

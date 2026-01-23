@@ -2,7 +2,7 @@
 
 import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 import json
 
@@ -401,3 +401,44 @@ def get_pipeline_stats(db_path: Path) -> dict:
 
     conn.close()
     return stats
+
+
+def get_weekly_stats(db_path: Path) -> dict:
+    """Get stats for the current week (Monday-Sunday)."""
+    conn = get_connection(db_path)
+
+    # Calculate Monday of current week
+    today = datetime.utcnow().date()
+    monday = today - timedelta(days=today.weekday())
+    monday_str = monday.isoformat()
+
+    # Leads found this week
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM leads WHERE date(imported_at) >= ?",
+        (monday_str,)
+    )
+    leads_found = cursor.fetchone()[0]
+
+    # Leads contacted this week (first email sent this week)
+    cursor = conn.execute(
+        """SELECT COUNT(*) FROM leads
+           WHERE current_step >= 1
+           AND date(last_sent_at) >= ?""",
+        (monday_str,)
+    )
+    leads_contacted = cursor.fetchone()[0]
+
+    # Leads replied this week
+    cursor = conn.execute(
+        "SELECT COUNT(*) FROM leads WHERE status = 'replied' AND date(replied_at) >= ?",
+        (monday_str,)
+    )
+    leads_replied = cursor.fetchone()[0]
+
+    conn.close()
+
+    return {
+        "leads_found": leads_found,
+        "leads_contacted": leads_contacted,
+        "leads_replied": leads_replied,
+    }
