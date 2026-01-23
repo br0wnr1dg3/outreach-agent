@@ -442,3 +442,32 @@ def get_weekly_stats(db_path: Path) -> dict:
         "leads_contacted": leads_contacted,
         "leads_replied": leads_replied,
     }
+
+
+def get_all_time_stats(db_path: Path) -> dict:
+    """Get all-time stats."""
+    conn = get_connection(db_path)
+
+    # Total leads found
+    cursor = conn.execute("SELECT COUNT(*) FROM leads")
+    leads_found = cursor.fetchone()[0]
+
+    # Total leads contacted (received first email)
+    cursor = conn.execute("SELECT COUNT(*) FROM leads WHERE current_step >= 1")
+    leads_contacted = cursor.fetchone()[0]
+
+    # Total leads replied
+    cursor = conn.execute("SELECT COUNT(*) FROM leads WHERE status = 'replied'")
+    leads_replied = cursor.fetchone()[0]
+
+    conn.close()
+
+    # Calculate reply rate
+    reply_rate = (leads_replied / leads_contacted * 100) if leads_contacted > 0 else 0.0
+
+    return {
+        "leads_found": leads_found,
+        "leads_contacted": leads_contacted,
+        "leads_replied": leads_replied,
+        "reply_rate": round(reply_rate, 1),
+    }

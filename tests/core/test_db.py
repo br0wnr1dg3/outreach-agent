@@ -7,7 +7,7 @@ from src.core.db import (
     update_lead_status, count_sent_today,
     insert_searched_company, is_company_searched,
     update_company_leads_found, count_leads_generated_today,
-    mark_lead_replied, get_weekly_stats
+    mark_lead_replied, get_weekly_stats, get_all_time_stats
 )
 
 
@@ -240,3 +240,30 @@ def test_get_weekly_stats_returns_correct_counts():
         assert stats["leads_found"] == 3
         assert stats["leads_contacted"] == 1
         assert stats["leads_replied"] == 1
+
+
+def test_get_all_time_stats_returns_counts_and_reply_rate():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        # Add 4 leads
+        for i in range(4):
+            insert_lead(db_path, f"lead{i}@test.com", f"Lead{i}", None, None, None, None)
+
+        # Mark 2 as contacted
+        conn = get_connection(db_path)
+        conn.execute("UPDATE leads SET current_step = 1 WHERE email IN (?, ?)",
+                     ("lead0@test.com", "lead1@test.com"))
+        conn.commit()
+        conn.close()
+
+        # Mark 1 as replied
+        mark_lead_replied(db_path, 1)  # lead0
+
+        stats = get_all_time_stats(db_path)
+
+        assert stats["leads_found"] == 4
+        assert stats["leads_contacted"] == 2
+        assert stats["leads_replied"] == 1
+        assert stats["reply_rate"] == 50.0  # 1/2 * 100
