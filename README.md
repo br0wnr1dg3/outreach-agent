@@ -8,7 +8,7 @@ Designed to work for companies selling to anyone that would be advertising on Fa
 
 1. Clone and install:
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/br0wnr1dg3/outreach-agent
    cd outreach-boilerplate
    uv sync
    ```
