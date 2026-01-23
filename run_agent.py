@@ -15,7 +15,7 @@ load_dotenv()
 
 import structlog
 from src.discovery.agent import DiscoveryAgent
-from src.core.db import DEFAULT_DB_PATH, get_daily_stats
+from src.core.db import DEFAULT_DB_PATH, get_daily_stats, get_weekly_stats, get_all_time_stats
 from src.services.slack_notifier import SlackNotifier
 
 log = structlog.get_logger()
@@ -55,10 +55,11 @@ async def main():
 
     # Send Slack summary
     notifier = SlackNotifier()
+    weekly_stats = get_weekly_stats(DEFAULT_DB_PATH)
+    all_time_stats = get_all_time_stats(DEFAULT_DB_PATH)
     await notifier.send_summary(
-        companies_found=companies_found,
-        leads_added=leads_added,
-        quota_met=leads_added >= daily_target,
+        weekly_stats=weekly_stats,
+        all_time_stats=all_time_stats,
         errors=errors if errors else None,
     )
 
