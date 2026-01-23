@@ -183,3 +183,16 @@ def test_count_leads_generated_today():
         insert_lead(db_path, "lead2@test.com", "Two", None, None, None, None)
 
         assert count_leads_generated_today(db_path) == 2
+
+
+def test_leads_table_has_replied_at_column():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        conn = get_connection(db_path)
+        cursor = conn.execute("PRAGMA table_info(leads)")
+        columns = {row[1] for row in cursor.fetchall()}
+        conn.close()
+
+        assert "replied_at" in columns

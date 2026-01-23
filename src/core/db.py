@@ -48,6 +48,7 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> None:
             imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_sent_at TIMESTAMP,
             next_send_at TIMESTAMP,
+            replied_at TIMESTAMP,
 
             -- Generated content
             email_1_subject TEXT,
