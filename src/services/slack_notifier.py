@@ -19,17 +19,15 @@ class SlackNotifier:
 
     async def send_summary(
         self,
-        companies_found: int,
-        leads_added: int,
-        quota_met: bool,
+        weekly_stats: dict,
+        all_time_stats: dict,
         errors: Optional[list[str]] = None,
     ) -> bool:
         """Send end-of-run summary to Slack.
 
         Args:
-            companies_found: Number of companies discovered
-            leads_added: Number of leads added to database
-            quota_met: Whether daily quota was achieved
+            weekly_stats: Dict with leads_found, leads_contacted, leads_replied
+            all_time_stats: Dict with leads_found, leads_contacted, leads_replied, reply_rate
             errors: List of any errors encountered
 
         Returns:
@@ -39,30 +37,39 @@ class SlackNotifier:
             log.warning("slack_webhook_not_configured")
             return False
 
-        # Build message
-        status_emoji = "✅" if quota_met else "⚠️"
-        status_text = "Quota met!" if quota_met else "Quota not met"
-
+        # Build message blocks
         blocks = [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"{status_emoji} Daily Outreach Complete",
+                    "text": "Daily Outreach Complete",
                 }
             },
             {
                 "type": "section",
                 "fields": [
-                    {"type": "mrkdwn", "text": f"*Companies Found:*\n{companies_found}"},
-                    {"type": "mrkdwn", "text": f"*Leads Added:*\n{leads_added}"},
-                    {"type": "mrkdwn", "text": f"*Status:*\n{status_text}"},
+                    {"type": "mrkdwn", "text": "*This Week*"},
+                    {"type": "mrkdwn", "text": "*All Time*"},
+                    {"type": "mrkdwn", "text": f"Leads Found: {weekly_stats['leads_found']}"},
+                    {"type": "mrkdwn", "text": f"Leads Found: {all_time_stats['leads_found']}"},
+                    {"type": "mrkdwn", "text": f"Contacted: {weekly_stats['leads_contacted']}"},
+                    {"type": "mrkdwn", "text": f"Contacted: {all_time_stats['leads_contacted']}"},
+                    {"type": "mrkdwn", "text": f"Replied: {weekly_stats['leads_replied']}"},
+                    {"type": "mrkdwn", "text": f"Replied: {all_time_stats['leads_replied']}"},
                 ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Reply Rate:* {all_time_stats['reply_rate']}%"
+                }
             }
         ]
 
         if errors:
-            error_text = "\n".join(f"• {e}" for e in errors[:5])
+            error_text = "\n".join(f"* {e}" for e in errors[:5])
             blocks.append({
                 "type": "section",
                 "text": {"type": "mrkdwn", "text": f"*Issues:*\n{error_text}"}
@@ -75,7 +82,12 @@ class SlackNotifier:
                     json={"blocks": blocks},
                 )
                 response.raise_for_status()
-                log.info("slack_summary_sent", companies=companies_found, leads=leads_added)
+                log.info(
+                    "slack_summary_sent",
+                    weekly_found=weekly_stats["leads_found"],
+                    all_time_found=all_time_stats["leads_found"],
+                    reply_rate=all_time_stats["reply_rate"],
+                )
                 return True
 
         except Exception as e:
