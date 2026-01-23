@@ -239,6 +239,17 @@ def update_lead_status(db_path: Path, lead_id: int, status: str) -> None:
     conn.close()
 
 
+def mark_lead_replied(db_path: Path, lead_id: int) -> None:
+    """Mark a lead as replied with timestamp."""
+    conn = get_connection(db_path)
+    conn.execute(
+        "UPDATE leads SET status = 'replied', replied_at = ? WHERE id = ?",
+        (datetime.utcnow().isoformat(), lead_id)
+    )
+    conn.commit()
+    conn.close()
+
+
 def update_lead_enrichment(
     db_path: Path,
     lead_id: int,

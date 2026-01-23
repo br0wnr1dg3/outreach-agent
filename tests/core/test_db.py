@@ -6,7 +6,8 @@ from src.core.db import (
     insert_lead, get_lead_by_email, get_leads_by_status,
     update_lead_status, count_sent_today,
     insert_searched_company, is_company_searched,
-    update_company_leads_found, count_leads_generated_today
+    update_company_leads_found, count_leads_generated_today,
+    mark_lead_replied
 )
 
 
@@ -196,3 +197,17 @@ def test_leads_table_has_replied_at_column():
         conn.close()
 
         assert "replied_at" in columns
+
+
+def test_mark_lead_replied_sets_status_and_timestamp():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = Path(tmpdir) / "test.db"
+        init_db(db_path)
+
+        lead_id = insert_lead(db_path, "reply@test.com", "Reply", None, None, None, None)
+
+        mark_lead_replied(db_path, lead_id)
+
+        lead = get_lead_by_email(db_path, "reply@test.com")
+        assert lead["status"] == "replied"
+        assert lead["replied_at"] is not None
